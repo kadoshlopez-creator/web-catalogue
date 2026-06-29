@@ -1,0 +1,71 @@
+# ──────────────────────────────────────────────
+# Entorno y configuración sensible
+# ──────────────────────────────────────────────
+.env
+.env.local
+.env.*.local
+
+# ──────────────────────────────────────────────
+# Dependencias PHP
+# ──────────────────────────────────────────────
+vendor/
+composer.phar
+
+# ──────────────────────────────────────────────
+# Archivos subidos por usuarios
+# ──────────────────────────────────────────────
+public/uploads/
+
+# ──────────────────────────────────────────────
+# Logs y datos de runtime
+# ──────────────────────────────────────────────
+storage/logs/
+storage/rate_limits/
+
+# ──────────────────────────────────────────────
+# Archivos de depuración temporales (raíz)
+# ──────────────────────────────────────────────
+*.log
+debug_*.txt
+parents_debug.log
+create_html.log
+check.php
+check_db.php
+dump_db.php
+db_seed.php
+scratch_debug.php
+test_cat.php
+test_create.php
+test_render.php
+test_update.php
+update_db.php
+schema_brands.php
+schema_categories.php
+schema_products.php
+migrate_seo.php
+migrate_product_seo.php
+
+# ──────────────────────────────────────────────
+# Sistema operativo
+# ──────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ──────────────────────────────────────────────
+# IDEs y editores
+# ──────────────────────────────────────────────
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+*.swp
+*.swo
+*~
+
+# ──────────────────────────────────────────────
+# Node (si se añade tooling frontend en el futuro)
+# ──────────────────────────────────────────────
+node_modules/
+npm-debug.log*
+yarn-error.log

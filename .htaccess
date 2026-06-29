@@ -1,0 +1,39 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# Protección de la raíz del proyecto
+#
+# El DocumentRoot correcto es /public — este archivo es una defensa en
+# profundidad por si Apache queda mal configurado apuntando a la raíz.
+# ──────────────────────────────────────────────────────────────────────────────
+
+# Denegar acceso directo a cualquier archivo desde web
+# (todo el tráfico HTTP debe entrar por /public/index.php)
+<IfModule mod_authz_core.c>
+    Require all denied
+</IfModule>
+<IfModule !mod_authz_core.c>
+    Order Deny,Allow
+    Deny from all
+</IfModule>
+
+# Bloquear acceso explícito a archivos especialmente sensibles
+<FilesMatch "(\.env|composer\.(json|lock|phar)|\.gitignore|CLAUDE\.md|DEPLOYMENT\.md)$">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order Deny,Allow
+        Deny from all
+    </IfModule>
+</FilesMatch>
+
+# Desactivar listado de directorios
+Options -Indexes
+
+# Desactivar ejecución de scripts en la raíz
+Options -ExecCGI
+<IfModule mod_php8.c>
+    php_flag engine off
+</IfModule>
+<IfModule mod_php7.c>
+    php_flag engine off
+</IfModule>

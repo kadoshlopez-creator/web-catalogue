@@ -1,0 +1,20 @@
+{
+    "name": "profc/web-catalogue",
+    "description": "Catálogo Web Administrable",
+    "type": "project",
+    "require": {
+        "php": ">=7.4"
+    },
+    "autoload": {
+        "psr-4": {
+            "App\\": "app/"
+        }
+    },
+    "authors": [
+        {
+            "name": "Senior Full Stack",
+            "email": "dev@example.com"
+        }
+    ],
+    "minimum-stability": "stable"
+}

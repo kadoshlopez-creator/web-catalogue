@@ -1,0 +1,236 @@
+:root {
+    --preloader-bg: #FFFFFF;
+    --preloader-progress-start: #38BDF8;
+    --preloader-progress-end: #2563EB;
+    --preloader-glow-1: #3EC8FF;
+    --preloader-glow-2: #0058C8;
+}
+
+/* Base Preloader Container */
+.vitrino-preloader {
+    position: fixed;
+    inset: 0;
+    z-index: 999999;
+    background-color: var(--preloader-bg);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    /* Subtle radial gradient background */
+    background-image: radial-gradient(circle at center, rgba(0, 0, 0, 0.01) 0%, rgba(0, 0, 0, 0.03) 100%);
+    will-change: opacity, transform;
+    transition: opacity 0.5s ease-out, transform 0.5s ease-out;
+}
+
+/* CSS Subtle Background Animations (Blur, Lights, Orbs) */
+.vitrino-preloader-bg {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    overflow: hidden;
+}
+
+.vitrino-preloader-orb {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(80px);
+    opacity: 0.4;
+    will-change: transform;
+}
+
+.vitrino-preloader-orb-1 {
+    width: 400px;
+    height: 400px;
+    background: var(--preloader-glow-1);
+    top: -100px;
+    left: -100px;
+    animation: orb-float 8s ease-in-out infinite alternate;
+}
+
+.vitrino-preloader-orb-2 {
+    width: 300px;
+    height: 300px;
+    background: var(--preloader-glow-2);
+    bottom: -50px;
+    right: -50px;
+    animation: orb-float-reverse 10s ease-in-out infinite alternate;
+}
+
+@keyframes orb-float {
+    0% { transform: translate(0, 0) scale(1); }
+    100% { transform: translate(100px, 50px) scale(1.1); }
+}
+
+@keyframes orb-float-reverse {
+    0% { transform: translate(0, 0) scale(1); }
+    100% { transform: translate(-80px, -40px) scale(1.05); }
+}
+
+/* Center Content */
+.vitrino-preloader-content {
+    position: relative;
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+/* Logo Animation */
+.vitrino-preloader-logo {
+    position: relative;
+    margin-bottom: 24px;
+}
+
+.vitrino-preloader-logo img {
+    display: block;
+    width: var(--preloader-logo-width, 140px);
+    height: auto;
+    object-fit: contain;
+    /* Scale and Opacity */
+    opacity: 0;
+    transform: scale(0.9);
+    animation: vitrino-logo-intro 700ms ease-out forwards;
+    will-change: transform, opacity;
+}
+
+/* Glow Effect */
+.vitrino-preloader-logo::after {
+    content: "";
+    position: absolute;
+    inset: -20px;
+    background: radial-gradient(circle, var(--preloader-glow-1) 0%, var(--preloader-glow-2) 50%, transparent 70%);
+    filter: blur(20px);
+    opacity: 0;
+    z-index: -1;
+    border-radius: 50%;
+    animation: vitrino-logo-glow 1800ms ease-in-out forwards;
+    pointer-events: none;
+    will-change: opacity;
+}
+
+@keyframes vitrino-logo-intro {
+    0% {
+        opacity: 0;
+        transform: scale(0.85);
+    }
+    60% {
+        opacity: 1;
+        transform: scale(1.05);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+@keyframes vitrino-logo-glow {
+    0% { opacity: 0; }
+    40% { opacity: 0.15; }
+    80% { opacity: 0; }
+    100% { opacity: 0; }
+}
+
+/* Progress Bar */
+.vitrino-preloader-bar-container {
+    width: 200px;
+    height: 3px;
+    background-color: #F3F4F6; /* very light gray */
+    border-radius: 9999px;
+    overflow: hidden;
+    position: relative;
+    opacity: 0;
+    animation: fade-in 400ms ease-out 400ms forwards;
+}
+
+.vitrino-preloader-bar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 100%;
+    background: linear-gradient(90deg, var(--preloader-progress-start), var(--preloader-progress-end));
+    border-radius: 9999px;
+    transform-origin: left;
+    transform: scaleX(0);
+    animation: vitrino-bar-fill 1600ms cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+    will-change: transform;
+}
+
+@keyframes vitrino-bar-fill {
+    0% { transform: scaleX(0); }
+    100% { transform: scaleX(1); }
+}
+
+/* Dynamic Text */
+.vitrino-preloader-text-container {
+    margin-top: 16px;
+    height: 20px;
+    position: relative;
+    width: 200px;
+    text-align: center;
+    opacity: 0;
+    animation: fade-in 400ms ease-out 600ms forwards;
+}
+
+.vitrino-preloader-text-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #9CA3AF;
+    margin-bottom: 4px;
+    display: block;
+}
+
+.vitrino-preloader-text {
+    font-size: 13px;
+    color: #4B5563;
+    font-weight: 500;
+    position: absolute;
+    width: 100%;
+    left: 0;
+    opacity: 0;
+    transform: translateY(4px);
+    transition: opacity 300ms ease-out, transform 300ms ease-out;
+    will-change: opacity, transform;
+}
+
+.vitrino-preloader-text.active {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+@keyframes fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+/* Reduced Motion (Accessibility) */
+@media (prefers-reduced-motion: reduce) {
+    .vitrino-preloader-bg,
+    .vitrino-preloader-logo::after {
+        display: none !important;
+    }
+    
+    .vitrino-preloader-logo img {
+        animation: none;
+        opacity: 1;
+        transform: scale(1);
+    }
+    
+    .vitrino-preloader-bar-container,
+    .vitrino-preloader-text-container {
+        animation: none;
+        opacity: 1;
+    }
+    
+    .vitrino-preloader-bar {
+        animation: none;
+        transform: scaleX(1);
+    }
+    
+    .vitrino-preloader-text {
+        transition: none;
+    }
+}
