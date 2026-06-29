@@ -33,4 +33,9 @@ class PromotionService
     {
         return $this->promotionModel->update($id, $data);
     }
+
+    public function deletePromotion(int $id): bool
+    {
+        return $this->promotionModel->delete($id);
+    }
 }

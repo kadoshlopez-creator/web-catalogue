@@ -11,6 +11,7 @@ $router->registerGlobalMiddleware(new \App\Middleware\CsrfMiddleware());
 $router->get('/', [\App\Controllers\HomeController::class, 'index']);
 $router->get('/catalogo', [\App\Controllers\CatalogController::class, 'index']);
 $router->get('/producto/{slug}', [\App\Controllers\CatalogController::class, 'show']);
+$router->get('/promociones', [\App\Controllers\HomeController::class, 'promotions']);
 
 // Autenticación
 $router->get('/login', [\App\Controllers\AuthController::class, 'showLogin']);
@@ -44,6 +45,7 @@ $router->get('/admin/marketing/promotions/create', [\App\Controllers\PromotionCo
 $router->post('/admin/marketing/promotions', [\App\Controllers\PromotionController::class, 'store']);
 $router->get('/admin/marketing/promotions/{id}/edit', [\App\Controllers\PromotionController::class, 'edit']);
 $router->post('/admin/marketing/promotions/{id}', [\App\Controllers\PromotionController::class, 'update']);
+$router->post('/admin/marketing/promotions/{id}/delete', [\App\Controllers\PromotionController::class, 'delete']);
 $router->get('/admin/marketing/offers', [\App\Controllers\OfferController::class, 'index']);
 $router->get('/admin/marketing/offers/create', [\App\Controllers\OfferController::class, 'create']);
 $router->post('/admin/marketing/offers', [\App\Controllers\OfferController::class, 'store']);

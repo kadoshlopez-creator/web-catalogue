@@ -107,4 +107,20 @@ class HomeController extends Controller
             'banners' => $banners
         ]);
     }
+
+    public function promotions()
+    {
+        $promotionService = new \App\Services\PromotionService();
+        $promotions = $promotionService->getAllPromotions();
+        
+        // Filter only active promotions
+        $activePromotions = array_filter($promotions, function($p) {
+            return $p['status'] === 'active';
+        });
+
+        return $this->render('public/promotions', [
+            'title' => 'Promociones Activas',
+            'promotions' => $activePromotions
+        ]);
+    }
 }

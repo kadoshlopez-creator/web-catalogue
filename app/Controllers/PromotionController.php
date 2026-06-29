@@ -83,4 +83,11 @@ class PromotionController extends Controller
         header('Location: /admin/marketing/promotions');
         exit;
     }
+
+    public function delete(int $id)
+    {
+        $this->promotionService->deletePromotion($id);
+        header('Location: /admin/marketing/promotions');
+        exit;
+    }
 }

@@ -36,8 +36,31 @@
 <body class="bg-gray-50 text-gray-900 antialiased selection:bg-blue-600 selection:text-white flex flex-col min-h-screen">
     <?php require_once __DIR__ . '/preloader.php'; ?>
 
+    <?php 
+    // Check if there are active offers and promotions
+    $db = \App\Core\Database::getConnection();
+    $activeOffersCount = $db->query("SELECT COUNT(*) FROM offers WHERE status = 'active' AND (start_date IS NULL OR start_date <= NOW()) AND (end_date IS NULL OR end_date >= NOW())")->fetchColumn();
+    $activePromotionsCount = $db->query("SELECT COUNT(*) FROM promotions WHERE status = 'active'")->fetchColumn();
+    $freeShippingPromo = $db->query("SELECT name FROM promotions WHERE status = 'active' AND type = 'free_shipping' LIMIT 1")->fetchColumn();
+    $hasFreeShipping = !empty($freeShippingPromo);
+    ?>
     <!-- Navbar -->
     <header class="fixed w-full top-0 z-50 glass-nav transition-all duration-300">
+        <?php if ($hasFreeShipping): ?>
+            <div id="promo-ribbon" class="bg-gradient-to-r from-gray-700 to-gray-900 text-gray-100 text-[13px] tracking-wide py-2 px-4 shadow-sm relative flex justify-center items-center">
+                <span><?= htmlspecialchars($freeShippingPromo) ?></span>
+                <button onclick="document.getElementById('promo-ribbon').style.display='none'; document.getElementById('main-content').classList.replace('pt-28', 'pt-20');" class="absolute right-4 text-gray-300 hover:text-white transition-colors focus:outline-none">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+            <!-- Temporalmente deshabilitado:
+            <script>
+                if (sessionStorage.getItem('hidePromoRibbon') === 'true') {
+                    document.write('<style>#promo-ribbon { display: none !important; } #main-content { padding-top: 5rem !important; }</style>');
+                }
+            </script>
+            -->
+        <?php endif; ?>
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between items-center h-20">
                 <!-- Logo -->
@@ -72,17 +95,22 @@
                 <!-- Desktop Menu -->
                 <nav class="hidden md:flex space-x-8 items-center">
                     <?php foreach ($main_menu as $item): ?>
-                        <a href="<?= htmlspecialchars($item['link']) ?>" class="text-gray-600 hover:text-blue-600 font-medium transition-colors">
+                        <?php 
+                        // Ocultar si es Promociones y no hay promociones activas
+                        if (stripos(trim($item['label']), 'promocion') !== false && $activePromotionsCount == 0) {
+                            continue;
+                        }
+                        $link = $item['link'];
+                        if (stripos(trim($item['label']), 'promocion') !== false && (empty($link) || strpos($link, '#') !== false || strpos($link, 'oferta') !== false)) {
+                            $link = '/promociones';
+                        }
+                        ?>
+                        <a href="<?= htmlspecialchars($link) ?>" class="text-gray-600 hover:text-blue-600 font-medium transition-colors">
                             <?= htmlspecialchars($item['label']) ?>
                         </a>
                     <?php endforeach; ?>
 
-                    <?php 
-                    // Check if there are active offers
-                    $db = \App\Core\Database::getConnection();
-                    $activeOffersCount = $db->query("SELECT COUNT(*) FROM offers WHERE status = 'active' AND (start_date IS NULL OR start_date <= NOW()) AND (end_date IS NULL OR end_date >= NOW())")->fetchColumn();
-                    if ($activeOffersCount > 0): 
-                    ?>
+                    <?php if ($activeOffersCount > 0): ?>
                         <a href="/catalogo?trend=oferta" class="px-4 py-1.5 bg-red-600 text-white font-extrabold rounded-md shadow-md shadow-red-500/20 animate-pulse hover:bg-red-700 hover:shadow-red-500/40 hover:animate-none transition-all flex items-center gap-1.5 border border-red-500">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
@@ -104,7 +132,7 @@
     </header>
 
     <!-- Main Content -->
-    <main class="flex-grow pt-20">
+    <main id="main-content" class="flex-grow <?php echo $hasFreeShipping ? 'pt-28' : 'pt-20'; ?>">
         {{content}}
     </main>
 
