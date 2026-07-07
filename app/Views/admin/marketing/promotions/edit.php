@@ -53,6 +53,28 @@
             </div>
 
         </div>
+
+            <div class="border-t border-gray-100 pt-6 mt-2">
+                <div class="flex items-start gap-4">
+                    <div class="flex items-center h-6 mt-0.5">
+                        <input type="hidden" name="show_in_menu" value="0">
+                        <input
+                            type="checkbox"
+                            id="show_in_menu"
+                            name="show_in_menu"
+                            value="1"
+                            <?= !empty($promotion['show_in_menu']) ? 'checked' : '' ?>
+                            class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2 cursor-pointer"
+                        >
+                    </div>
+                    <div>
+                        <label for="show_in_menu" class="text-sm font-semibold text-gray-800 cursor-pointer">Mostrar en Menú Público</label>
+                        <p class="text-xs text-gray-500 mt-0.5">Al activar esta opción, la sección <strong>"Promociones"</strong> aparecerá en el menú de navegación del sitio web.</p>
+                    </div>
+                </div>
+            </div>
+
+        </div>
     </div>
     
     <div class="flex justify-end gap-4">

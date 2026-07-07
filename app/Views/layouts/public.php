@@ -40,7 +40,7 @@
     // Check if there are active offers and promotions
     $db = \App\Core\Database::getConnection();
     $activeOffersCount = $db->query("SELECT COUNT(*) FROM offers WHERE status = 'active' AND (start_date IS NULL OR start_date <= NOW()) AND (end_date IS NULL OR end_date >= NOW())")->fetchColumn();
-    $activePromotionsCount = $db->query("SELECT COUNT(*) FROM promotions WHERE status = 'active'")->fetchColumn();
+    $activePromotionsCount = $db->query("SELECT COUNT(*) FROM promotions WHERE status = 'active' AND show_in_menu = 1")->fetchColumn();
     $freeShippingPromo = $db->query("SELECT name FROM promotions WHERE status = 'active' AND type = 'free_shipping' LIMIT 1")->fetchColumn();
     $hasFreeShipping = !empty($freeShippingPromo);
     ?>

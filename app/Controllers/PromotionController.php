@@ -44,7 +44,8 @@ class PromotionController extends Controller
             'name' => $_POST['name'] ?? '',
             'campaign_id' => !empty($_POST['campaign_id']) ? $_POST['campaign_id'] : null,
             'type' => $_POST['type'] ?? 'free_shipping',
-            'status' => $_POST['status'] ?? 'active'
+            'status' => $_POST['status'] ?? 'active',
+            'show_in_menu' => isset($_POST['show_in_menu']) && $_POST['show_in_menu'] == '1' ? 1 : 0
         ];
         
         $this->promotionService->createPromotion($data);
@@ -76,7 +77,8 @@ class PromotionController extends Controller
             'name' => $_POST['name'] ?? '',
             'campaign_id' => !empty($_POST['campaign_id']) ? $_POST['campaign_id'] : null,
             'type' => $_POST['type'] ?? 'free_shipping',
-            'status' => $_POST['status'] ?? 'active'
+            'status' => $_POST['status'] ?? 'active',
+            'show_in_menu' => isset($_POST['show_in_menu']) && $_POST['show_in_menu'] == '1' ? 1 : 0
         ];
         
         $this->promotionService->updatePromotion($id, $data);
