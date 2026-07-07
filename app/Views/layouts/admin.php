@@ -56,10 +56,7 @@
                 Marcas
             </a>
             
-            <a href="/admin/menus" class="flex items-center gap-3 px-3 py-2 rounded-md <?= strpos($_SERVER['REQUEST_URI'], '/admin/menus') !== false ? 'bg-[#d4d4d4] text-gray-900 font-medium' : 'text-gray-700 hover:bg-[#d4d4d4] hover:text-gray-900' ?> transition-colors text-[14px]">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
-                Menús
-            </a>
+
             <div class="pt-3 mt-3 border-t border-[#d4d4d4]"></div>
             <div class="px-3 text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1 mt-2">Marketing (Nuevo)</div>
             <a href="/admin/marketing/dashboard" class="flex items-center gap-3 px-3 py-2 rounded-md <?= strpos($_SERVER['REQUEST_URI'], '/admin/marketing/dashboard') !== false ? 'bg-[#d4d4d4] text-gray-900 font-medium' : 'text-gray-700 hover:bg-[#d4d4d4] hover:text-gray-900' ?> transition-colors text-[14px]">

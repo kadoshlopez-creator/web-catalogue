@@ -6,6 +6,7 @@ use App\Core\Controller;
 use App\Models\Setting;
 use App\Models\Category;
 use App\Models\Brand;
+use App\Models\User;
 use App\Core\Session;
 use App\Middleware\AuthMiddleware;
 use App\Middleware\RoleMiddleware;
@@ -43,13 +44,22 @@ class SettingController extends Controller
         
         $categories = $categoryModel->all();
         $brands = $brandModel->allActive();
+        $customPages = $settingModel->get('custom_pages', []);
+        
+        $navigationMenus = $settingModel->get('navigation_menus', []);
+        $heroSettings = $settingModel->get('home_hero_settings', []);
+        $heroSlides = $settingModel->get('home_hero_slides', []);
 
         return $this->render('admin/settings/home_builder', [
             'title' => 'Constructor de Inicio',
             'sections' => $sections,
             'ribbon' => $ribbon,
             'categories' => $categories,
-            'brands' => $brands
+            'brands' => $brands,
+            'customPages' => $customPages,
+            'navigationMenus' => $navigationMenus,
+            'heroSettings' => $heroSettings,
+            'heroSlides' => $heroSlides
         ]);
     }
 
@@ -61,12 +71,17 @@ class SettingController extends Controller
         $site_favicon = $settingModel->get('site_favicon', '');
         $login_logo = $settingModel->get('login_logo', '');
 
+        $userId = Session::get('user_id');
+        $userModel = new User();
+        $user = $userModel->find($userId);
+
         return $this->render('admin/settings/brand', [
             'title' => 'Identidad del Sitio',
             'site_logo' => $site_logo,
             'site_logo_height' => $site_logo_height,
             'site_favicon' => $site_favicon,
-            'login_logo' => $login_logo
+            'login_logo' => $login_logo,
+            'user' => $user
         ]);
     }
 
@@ -168,7 +183,47 @@ class SettingController extends Controller
                 }
             }
 
-            Session::flash('success', 'Configuración de marca guardada correctamente.');
+            // Procesar Credenciales de Acceso
+            $adminEmail = $this->request->post('admin_email');
+            $adminPassword = $this->request->post('admin_password');
+
+            if (!empty($adminEmail)) {
+                $userModel = new User();
+                $userId = Session::get('user_id');
+                
+                // Verificar si el email ya existe y pertenece a otro usuario
+                $existingUser = $userModel->findByEmail($adminEmail);
+                if ($existingUser && $existingUser['id'] != $userId) {
+                    Session::flash('error', 'El email ingresado ya está en uso por otra cuenta.');
+                    return $this->redirect('/admin/settings/brand');
+                }
+
+                $userData = [
+                    'email' => $adminEmail
+                ];
+
+                if (!empty($adminPassword)) {
+                    // Validar requisitos de la contraseña
+                    if (strlen($adminPassword) < 8 || 
+                        !preg_match('/[A-Z]/', $adminPassword) || 
+                        !preg_match('/[a-z]/', $adminPassword) || 
+                        !preg_match('/[0-9]/', $adminPassword) || 
+                        !preg_match('/[^A-Za-z0-9]/', $adminPassword)) {
+                        Session::flash('error', 'La contraseña no cumple con los requisitos mínimos de seguridad.');
+                        return $this->redirect('/admin/settings/brand');
+                    }
+                    $userData['password'] = password_hash($adminPassword, PASSWORD_DEFAULT);
+                }
+
+                $userModel->update($userId, $userData);
+                
+                // Actualizar el email en sesión si cambió
+                if ($adminEmail !== Session::get('user_email')) {
+                    Session::set('user_email', $adminEmail);
+                }
+            }
+
+            Session::flash('success', 'Configuración guardada correctamente.');
             return $this->redirect('/admin/settings/brand');
         }
     }
@@ -262,6 +317,40 @@ class SettingController extends Controller
                         'image_path' => $imagePath
                     ];
                 }
+            }
+
+            // Procesar Custom Pages
+            $customPagesData = $this->request->post('custom_pages');
+            $customPages = [];
+            if (!empty($customPagesData) && is_array($customPagesData)) {
+                foreach ($customPagesData as $page) {
+                    if (!empty($page['title'])) {
+                        $customPages[] = [
+                            'title' => $page['title'],
+                            'slug' => $page['slug'] ?? '',
+                            'meta_description' => $page['meta_description'] ?? '',
+                            'content' => $page['content'] ?? ''
+                        ];
+                    }
+                }
+            }
+            $settingModel->set('custom_pages', $customPages);
+
+            // Procesar Navigation Menus
+            $navigationMenusData = $this->request->post('navigation_menus');
+            if (!empty($navigationMenusData) && is_array($navigationMenusData)) {
+                $menusToSave = [];
+                foreach (['main', 'footer'] as $menuType) {
+                    $itemsJson = $navigationMenusData[$menuType]['items'] ?? '[]';
+                    $itemsArray = json_decode($itemsJson, true);
+                    if (!is_array($itemsArray)) {
+                        $itemsArray = [];
+                    }
+                    $menusToSave[$menuType] = [
+                        'items' => $itemsArray
+                    ];
+                }
+                $settingModel->set('navigation_menus', $menusToSave);
             }
 
             $settingModel->set('home_sections', $sections);

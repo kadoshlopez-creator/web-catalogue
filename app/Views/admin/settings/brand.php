@@ -115,9 +115,90 @@ use App\Core\Session;
             </div>
         </div>
     </div>
+
+    <!-- Credenciales de Acceso -->
+    <div class="p-6 bg-white rounded-xl border-t border-gray-100">
+        <h3 class="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+            <svg class="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+            Credenciales de Acceso
+        </h3>
+        <p class="text-xs text-gray-500 mb-4">Actualiza el correo electrónico y la contraseña para ingresar a este panel de administración.</p>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 uppercase tracking-wider mb-2">Usuario / Email</label>
+                <input type="email" name="admin_email" value="<?= htmlspecialchars($user['email'] ?? '') ?>" required class="w-full border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm">
+            </div>
+            <div x-data="passwordManager()">
+                <label class="block text-sm font-semibold text-gray-700 uppercase tracking-wider mb-2">Nueva Contraseña</label>
+                <div class="relative">
+                    <input :type="showPassword ? 'text' : 'password'" name="admin_password" x-model="password" placeholder="Dejar en blanco para no cambiar" class="w-full border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm pr-20">
+                    <div class="absolute inset-y-0 right-0 flex items-center pr-2 gap-1">
+                        <button type="button" @click="showPassword = !showPassword" class="p-1 text-gray-400 hover:text-gray-600 focus:outline-none" title="Mostrar/Ocultar contraseña">
+                            <svg x-show="!showPassword" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+                            <svg x-show="showPassword" class="w-4 h-4" style="display: none;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"></path></svg>
+                        </button>
+                        <button type="button" @click="generatePassword()" class="p-1 text-blue-500 hover:text-blue-700 focus:outline-none" title="Generar contraseña segura">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                        </button>
+                    </div>
+                </div>
+                
+                <div x-show="password.length > 0" class="mt-3 space-y-1" style="display: none;">
+                    <p class="text-xs font-semibold text-gray-700 mb-2">Requisitos de seguridad:</p>
+                    <div class="flex items-center gap-2 text-xs" :class="password.length >= 8 ? 'text-green-600' : 'text-gray-500'">
+                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>
+                        <span>Mínimo 8 caracteres</span>
+                    </div>
+                    <div class="flex items-center gap-2 text-xs" :class="/[A-Z]/.test(password) ? 'text-green-600' : 'text-gray-500'">
+                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>
+                        <span>Al menos una letra mayúscula</span>
+                    </div>
+                    <div class="flex items-center gap-2 text-xs" :class="/[a-z]/.test(password) ? 'text-green-600' : 'text-gray-500'">
+                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>
+                        <span>Al menos una letra minúscula</span>
+                    </div>
+                    <div class="flex items-center gap-2 text-xs" :class="/[0-9]/.test(password) ? 'text-green-600' : 'text-gray-500'">
+                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>
+                        <span>Al menos un número</span>
+                    </div>
+                    <div class="flex items-center gap-2 text-xs" :class="/[^A-Za-z0-9]/.test(password) ? 'text-green-600' : 'text-gray-500'">
+                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>
+                        <span>Al menos un carácter especial (!@#$%^&*)</span>
+                    </div>
+                </div>
+                <p x-show="password.length === 0" class="text-[10px] text-gray-500 mt-1">Si no deseas cambiar la contraseña actual, deja este campo vacío.</p>
+            </div>
+        </div>
+    </div>
 </form>
 
 <script>
+    document.addEventListener('alpine:init', () => {
+        Alpine.data('passwordManager', () => ({
+            password: '',
+            showPassword: false,
+            generatePassword() {
+                const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()_+~`|}{[]:;?><,./-=';
+                let generated = '';
+                // Asegurar al menos uno de cada tipo
+                generated += 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'[Math.floor(Math.random() * 26)];
+                generated += 'abcdefghijklmnopqrstuvwxyz'[Math.floor(Math.random() * 26)];
+                generated += '0123456789'[Math.floor(Math.random() * 10)];
+                generated += '!@#$%^&*()_+~`|}{[]:;?><,./-='[Math.floor(Math.random() * 29)];
+                
+                // Rellenar hasta 16 caracteres
+                for (let i = 0; i < 12; i++) {
+                    generated += chars[Math.floor(Math.random() * chars.length)];
+                }
+                
+                // Mezclar la contraseña
+                this.password = generated.split('').sort(() => 0.5 - Math.random()).join('');
+                this.showPassword = true;
+            }
+        }));
+    });
+
     function deleteAsset(type) {
         const msg = type === 'logo' 
             ? '¿Está seguro que desea eliminar el logo actual?' 

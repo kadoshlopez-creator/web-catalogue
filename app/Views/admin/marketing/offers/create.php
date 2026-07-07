@@ -84,32 +84,28 @@
 
                     <div id="target_id_container" style="display: none;">
                         <label id="target_id_label" for="target_id" class="block text-sm font-medium text-gray-700 mb-1">Seleccionar Elemento</label>
+                        <p class="text-xs text-gray-500 mb-2">Mantén presionado CTRL (o CMD en Mac) para seleccionar varios elementos.</p>
                         
                         <!-- Categorías -->
-                        <select id="target_category" class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all bg-white hidden-select">
-                            <option value="">Seleccione una categoría...</option>
+                        <select id="target_category" multiple class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all bg-white hidden-select h-32">
                             <?php if(isset($categories)): foreach($categories as $cat): ?>
                                 <option value="<?= $cat['id'] ?>"><?= htmlspecialchars($cat['name']) ?></option>
                             <?php endforeach; endif; ?>
                         </select>
 
                         <!-- Marcas -->
-                        <select id="target_brand" class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all bg-white hidden-select">
-                            <option value="">Seleccione una marca...</option>
+                        <select id="target_brand" multiple class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all bg-white hidden-select h-32">
                             <?php if(isset($brands)): foreach($brands as $b): ?>
                                 <option value="<?= $b['id'] ?>"><?= htmlspecialchars($b['name']) ?></option>
                             <?php endforeach; endif; ?>
                         </select>
 
                         <!-- Productos -->
-                        <select id="target_product" class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all bg-white hidden-select">
-                            <option value="">Seleccione un producto...</option>
+                        <select id="target_product" multiple class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all bg-white hidden-select h-32">
                             <?php if(isset($products)): foreach($products as $p): ?>
                                 <option value="<?= $p['id'] ?>"><?= htmlspecialchars($p['name']) ?> (<?= htmlspecialchars($p['sku']) ?>)</option>
                             <?php endforeach; endif; ?>
                         </select>
-
-                        <input type="hidden" name="target_id" id="target_id_real" value="">
                     </div>
                 </div>
             </div>
@@ -132,14 +128,12 @@ function toggleTargetSelect() {
     const type = document.getElementById('target_type').value;
     const container = document.getElementById('target_id_container');
     const label = document.getElementById('target_id_label');
-    const realInput = document.getElementById('target_id_real');
     
-    // Ocultar todos los selects primero
+    // Ocultar todos los selects primero y quitarles el atributo name
     document.querySelectorAll('.hidden-select').forEach(el => {
         el.style.display = 'none';
-        el.onchange = null;
+        el.removeAttribute('name');
     });
-    realInput.value = '';
 
     if (type === 'global') {
         container.style.display = 'none';
@@ -148,21 +142,19 @@ function toggleTargetSelect() {
         let selectEl = null;
         
         if (type === 'category') {
-            label.innerText = 'Seleccionar Categoría';
+            label.innerText = 'Seleccionar Categoría (Múltiple)';
             selectEl = document.getElementById('target_category');
         } else if (type === 'brand') {
-            label.innerText = 'Seleccionar Marca';
+            label.innerText = 'Seleccionar Marca (Múltiple)';
             selectEl = document.getElementById('target_brand');
         } else if (type === 'product') {
-            label.innerText = 'Seleccionar Producto';
+            label.innerText = 'Seleccionar Producto (Múltiple)';
             selectEl = document.getElementById('target_product');
         }
 
         if (selectEl) {
             selectEl.style.display = 'block';
-            selectEl.onchange = function() {
-                realInput.value = this.value;
-            };
+            selectEl.setAttribute('name', 'target_ids[]');
         }
     }
 }

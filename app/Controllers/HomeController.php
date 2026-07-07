@@ -90,7 +90,7 @@ class HomeController extends Controller
                     'btn_text' => $oldHero['btn_text'] ?? 'Ver Catálogo',
                     'btn_link' => $oldHero['btn_link'] ?? '/catalog',
                     'layout' => 'text_left',
-                    'image_path' => ''
+                    'image_path' => $oldHero['image_path'] ?? ''
                 ];
             }
         }
@@ -98,8 +98,15 @@ class HomeController extends Controller
         $bannerService = new \App\Services\BannerService();
         $banners = $bannerService->getActiveBanners();
 
+        $homePageSeo = $settingModel->get('home_page_seo', []);
+        
+        $title = !empty($homePageSeo['title']) ? $homePageSeo['title'] : 'Inicio';
+        $metaDesc = !empty($homePageSeo['meta_description']) ? $homePageSeo['meta_description'] : 'Descubre nuestra increíble selección de productos de alta calidad al mejor precio.';
+
         return $this->render('public/home', [
-            'title' => 'Inicio',
+            'title' => $title,
+            'meta_description' => $metaDesc,
+            'homePageSeo' => $homePageSeo,
             'sections' => $homeSections,
             'ribbon' => $ribbon,
             'heroSettings' => $heroSettings,
@@ -121,6 +128,31 @@ class HomeController extends Controller
         return $this->render('public/promotions', [
             'title' => 'Promociones Activas',
             'promotions' => $activePromotions
+        ]);
+    }
+
+    public function page(string $slug)
+    {
+        $settingModel = new \App\Models\Setting();
+        $customPages = $settingModel->get('custom_pages', []);
+        
+        $page = null;
+        foreach ($customPages as $p) {
+            if (isset($p['slug']) && ltrim($p['slug'], '/') === $slug) {
+                $page = $p;
+                break;
+            }
+        }
+        
+        if (!$page) {
+            $this->redirect('/');
+            return;
+        }
+
+        return $this->render('public/page', [
+            'title' => $page['title'] ?? 'Página',
+            'meta_description' => $page['meta_description'] ?? '',
+            'page' => $page
         ]);
     }
 }

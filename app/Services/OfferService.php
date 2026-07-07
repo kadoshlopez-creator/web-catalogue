@@ -22,16 +22,30 @@ class OfferService
     public function createOffer(array $data): string|int|bool
     {
         $targetType = $data['target_type'] ?? 'global';
-        $targetId = $data['target_id'] ?? null;
+        $targetIds = $data['target_ids'] ?? [];
         
-        unset($data['target_type'], $data['target_id']);
+        // Mantener compatibilidad si envían un solo ID (no array)
+        if (!is_array($targetIds) && $targetIds !== null && $targetIds !== '') {
+            $targetIds = [$targetIds];
+        }
+        
+        unset($data['target_type'], $data['target_ids'], $data['target_id']);
 
         $offerId = $this->offerModel->create($data);
         
         if ($offerId) {
             $db = \App\Core\Database::getConnection();
             $stmt = $db->prepare("INSERT INTO offer_targets (offer_id, target_type, target_id) VALUES (?, ?, ?)");
-            $stmt->execute([$offerId, $targetType, $targetId]);
+            
+            if ($targetType === 'global' || empty($targetIds)) {
+                $stmt->execute([$offerId, $targetType, null]);
+            } else {
+                foreach ($targetIds as $tid) {
+                    if (!empty($tid)) {
+                        $stmt->execute([$offerId, $targetType, $tid]);
+                    }
+                }
+            }
         }
         
         return $offerId;
@@ -44,12 +58,16 @@ class OfferService
             $db = \App\Core\Database::getConnection();
             $stmt = $db->prepare("SELECT target_type, target_id FROM offer_targets WHERE offer_id = ?");
             $stmt->execute([$id]);
-            $target = $stmt->fetch();
-            if ($target) {
-                $offer['target_type'] = $target['target_type'];
-                $offer['target_id'] = $target['target_id'];
+            $targets = $stmt->fetchAll();
+            
+            if (!empty($targets)) {
+                $offer['target_type'] = $targets[0]['target_type'];
+                $offer['target_ids'] = array_filter(array_column($targets, 'target_id'));
+                // Mantener compatibility
+                $offer['target_id'] = !empty($offer['target_ids']) ? $offer['target_ids'][0] : null;
             } else {
                 $offer['target_type'] = 'global';
+                $offer['target_ids'] = [];
                 $offer['target_id'] = null;
             }
         }
@@ -59,21 +77,33 @@ class OfferService
     public function updateOffer(int $id, array $data): bool
     {
         $targetType = $data['target_type'] ?? 'global';
-        $targetId = $data['target_id'] ?? null;
+        $targetIds = $data['target_ids'] ?? [];
         
-        unset($data['target_type'], $data['target_id']);
+        if (!is_array($targetIds) && $targetIds !== null && $targetIds !== '') {
+            $targetIds = [$targetIds];
+        }
+        
+        unset($data['target_type'], $data['target_ids'], $data['target_id']);
 
         $success = $this->offerModel->update($id, $data);
 
         if ($success) {
             $db = \App\Core\Database::getConnection();
-            // Delete old target
+            // Delete old targets
             $stmt = $db->prepare("DELETE FROM offer_targets WHERE offer_id = ?");
             $stmt->execute([$id]);
             
-            // Insert new target
+            // Insert new targets
             $stmt = $db->prepare("INSERT INTO offer_targets (offer_id, target_type, target_id) VALUES (?, ?, ?)");
-            $stmt->execute([$id, $targetType, $targetId]);
+            if ($targetType === 'global' || empty($targetIds)) {
+                $stmt->execute([$id, $targetType, null]);
+            } else {
+                foreach ($targetIds as $tid) {
+                    if (!empty($tid)) {
+                        $stmt->execute([$id, $targetType, $tid]);
+                    }
+                }
+            }
         }
 
         return $success;

@@ -61,7 +61,7 @@ class OfferController extends Controller
             'end_date' => !empty($_POST['end_date']) ? $_POST['end_date'] : null,
             'status' => $_POST['status'] ?? 'active',
             'target_type' => $_POST['target_type'] ?? 'global',
-            'target_id' => !empty($_POST['target_id']) ? $_POST['target_id'] : null
+            'target_ids' => !empty($_POST['target_ids']) ? $_POST['target_ids'] : []
         ];
         
         $this->offerService->createOffer($data);
@@ -110,7 +110,7 @@ class OfferController extends Controller
             'end_date' => !empty($_POST['end_date']) ? $_POST['end_date'] : null,
             'status' => $_POST['status'] ?? 'active',
             'target_type' => $_POST['target_type'] ?? 'global',
-            'target_id' => !empty($_POST['target_id']) ? $_POST['target_id'] : null
+            'target_ids' => !empty($_POST['target_ids']) ? $_POST['target_ids'] : []
         ];
         
         $this->offerService->updateOffer($id, $data);

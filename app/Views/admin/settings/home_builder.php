@@ -14,11 +14,488 @@ use App\Core\Session;
     <input type="hidden" name="type" id="delete-asset-type" value="">
 </form>
 
-<form id="home-builder-form" action="/admin/settings/home" method="POST" enctype="multipart/form-data" class="bg-white rounded-xl shadow-sm border border-gray-200">
+<form id="home-builder-form" action="/admin/settings/home" method="POST" enctype="multipart/form-data" novalidate>
+
+    <!-- Asistente de Creación de Páginas (Modal) -->
+    <div x-data="{
+        open: false,
+        step: 1,
+        selectedCategory: '',
+        selectedTemplate: '',
+        pageTitle: '',
+        pageSlug: '',
+        pageMetaDesc: '',
+        addToMenu: false,
+        menuTarget: 'main',
+        menuPosition: 'after',
+        menuReferenceItem: '',
+        menuItemsList: [],
+        
+        init() {
+            this.$watch('pageTitle', (value) => {
+                // Auto-generate slug
+                if(value) {
+                    this.pageSlug = '/' + value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
+                } else {
+                    this.pageSlug = '';
+                }
+            });
+            window.addEventListener('open-assistant', () => {
+                this.open = true;
+                this.step = 1;
+                this.selectedCategory = '';
+                this.selectedTemplate = '';
+                this.pageTitle = '';
+                this.pageSlug = '';
+                this.pageMetaDesc = '';
+                this.addToMenu = false;
+            });
+            this.$watch('addToMenu', (value) => {
+                if(value) {
+                    let menuDataRaw = document.getElementById('menu-data-main');
+                    if(menuDataRaw && menuDataRaw.value) {
+                        try {
+                            this.menuItemsList = JSON.parse(menuDataRaw.value);
+                            if(this.menuItemsList.length > 0) {
+                                this.menuReferenceItem = this.menuItemsList[0].label;
+                            }
+                        } catch(e) {}
+                    }
+                }
+            });
+        },
+        closeAssistant() {
+            this.open = false;
+        },
+        getTemplatesForCategory() {
+            if(this.selectedCategory === 'contacto') {
+                return [
+                    {id: 'contact_1', name: 'Clásica', desc: 'Formulario simple y directo'},
+                    {id: 'contact_2', name: 'Corporativa', desc: 'Con información de contacto destacada'},
+                    {id: 'contact_3', name: 'Ubicación', desc: 'Enfocada en mapa y direcciones'}
+                ];
+            } else if (this.selectedCategory === 'nosotros') {
+                return [
+                    {id: 'about_1', name: 'Historia', desc: 'Centrada en la trayectoria'},
+                    {id: 'about_2', name: 'Equipo', desc: 'Destacando a los profesionales'},
+                    {id: 'about_3', name: 'Misión y Visión', desc: 'Enfoque corporativo'}
+                ];
+            } else if (this.selectedCategory === 'servicios') {
+                return [
+                    {id: 'services_1', name: 'Tarjetas', desc: 'Servicios en cuadrícula'},
+                    {id: 'services_2', name: 'Lista Detallada', desc: 'Con precios y características'},
+                    {id: 'services_3', name: 'Hero + Features', desc: 'Impacto visual fuerte'}
+                ];
+            } else {
+                return [
+                    {id: 'blank_1', name: 'En Blanco', desc: 'Empieza desde cero'}
+                ];
+            }
+        },
+        getCategoryName() {
+            const map = {
+                'contacto': 'Contacto',
+                'nosotros': 'Sobre Nosotros',
+                'servicios': 'Servicios',
+                'vacia': 'Página Vacía'
+            };
+            return map[this.selectedCategory] || '';
+        },
+        prepareDetails() {
+            if(this.selectedCategory !== 'vacia') {
+                this.pageTitle = this.getCategoryName();
+            }
+            this.step = 3;
+        },
+        generatePage() {
+            const htmlContent = getTemplateHTML(this.selectedTemplate);
+            const cleanSlug = this.pageSlug.replace(/^\/+/, '');
+            
+            // Generate standard item using the custom page system
+            addCustomPage({
+                title: this.pageTitle,
+                slug: cleanSlug,
+                meta_description: this.pageMetaDesc,
+                content: htmlContent
+            });
+            
+            // Siempre agregar la nueva pgina al footer automticamente
+            this.$dispatch('add-to-menu', {
+                menu: 'footer',
+                label: this.pageTitle,
+                link: '/p/' + cleanSlug,
+                position: 'after',
+                reference: null
+            });
+            
+            if (this.addToMenu) {
+                this.$dispatch('add-to-menu', {
+                    menu: this.menuTarget,
+                    label: this.pageTitle,
+                    link: '/p/' + cleanSlug,
+                    position: this.menuPosition,
+                    reference: this.menuReferenceItem
+                });
+            }
+        }
+    }">
+        
+        <!-- Backdrop -->
+        <div x-show="open" class="fixed inset-0 bg-gray-900 bg-opacity-50 z-[100] transition-opacity backdrop-blur-sm" style="display: none;"></div>
+        
+        <!-- Modal -->
+        <div x-show="open" class="fixed inset-0 z-[101] flex items-center justify-center p-4 sm:p-6" style="display: none;">
+            <div @click.away="closeAssistant()" class="bg-white rounded-2xl shadow-2xl w-full max-w-4xl overflow-hidden transform transition-all flex flex-col max-h-[90vh]">
+                
+                <!-- Header -->
+                <div class="bg-indigo-600 px-6 py-4 flex items-center justify-between">
+                    <h3 class="text-xl font-bold text-white flex items-center gap-2">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                        Asistente Inteligente de Páginas
+                    </h3>
+                    <button @click="closeAssistant()" class="text-indigo-200 hover:text-white transition-colors">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                    </button>
+                </div>
+                
+                <!-- Progress Bar -->
+                <div class="bg-indigo-50 px-6 py-3 border-b border-indigo-100 flex items-center gap-4">
+                    <div class="flex items-center gap-2" :class="step >= 1 ? 'text-indigo-700' : 'text-gray-400'">
+                        <div class="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold" :class="step >= 1 ? 'bg-indigo-600 text-white' : 'bg-gray-300 text-white'">1</div>
+                        <span class="text-sm font-medium">Categoría</span>
+                    </div>
+                    <div class="w-8 h-[2px]" :class="step >= 2 ? 'bg-indigo-600' : 'bg-gray-300'"></div>
+                    <div class="flex items-center gap-2" :class="step >= 2 ? 'text-indigo-700' : 'text-gray-400'">
+                        <div class="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold" :class="step >= 2 ? 'bg-indigo-600 text-white' : 'bg-gray-300 text-white'">2</div>
+                        <span class="text-sm font-medium">Plantilla</span>
+                    </div>
+                    <div class="w-8 h-[2px]" :class="step >= 3 ? 'bg-indigo-600' : 'bg-gray-300'"></div>
+                    <div class="flex items-center gap-2" :class="step >= 3 ? 'text-indigo-700' : 'text-gray-400'">
+                        <div class="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold" :class="step >= 3 ? 'bg-indigo-600 text-white' : 'bg-gray-300 text-white'">3</div>
+                        <span class="text-sm font-medium">Detalles</span>
+                    </div>
+                </div>
+                
+                <!-- Body -->
+                <div class="p-6 overflow-y-auto flex-grow bg-gray-50/50">
+                    
+                    <!-- Step 1: Select Category -->
+                    <div x-show="step === 1">
+                        <h4 class="text-lg font-medium text-gray-900 mb-4">¿Qué tipo de página deseas crear?</h4>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                            <!-- Contacto -->
+                            <div @click="selectedCategory = 'contacto'" class="border rounded-xl p-4 cursor-pointer hover:border-indigo-500 transition-all text-center group bg-white" :class="{'border-indigo-500 ring-2 ring-indigo-500 bg-indigo-50': selectedCategory === 'contacto', 'border-gray-200': selectedCategory !== 'contacto'}">
+                                <div class="w-12 h-12 rounded-full mx-auto flex items-center justify-center mb-3" :class="{'bg-indigo-200 text-indigo-700': selectedCategory === 'contacto', 'bg-gray-100 text-gray-500 group-hover:bg-indigo-100 group-hover:text-indigo-600': selectedCategory !== 'contacto'}">
+                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
+                                </div>
+                                <h5 class="font-bold text-gray-900">Contacto</h5>
+                            </div>
+                            
+                            <!-- Nosotros -->
+                            <div @click="selectedCategory = 'nosotros'" class="border rounded-xl p-4 cursor-pointer hover:border-indigo-500 transition-all text-center group bg-white" :class="{'border-indigo-500 ring-2 ring-indigo-500 bg-indigo-50': selectedCategory === 'nosotros', 'border-gray-200': selectedCategory !== 'nosotros'}">
+                                <div class="w-12 h-12 rounded-full mx-auto flex items-center justify-center mb-3" :class="{'bg-indigo-200 text-indigo-700': selectedCategory === 'nosotros', 'bg-gray-100 text-gray-500 group-hover:bg-indigo-100 group-hover:text-indigo-600': selectedCategory !== 'nosotros'}">
+                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+                                </div>
+                                <h5 class="font-bold text-gray-900">Sobre Nosotros</h5>
+                            </div>
+                            
+                            <!-- Servicios -->
+                            <div @click="selectedCategory = 'servicios'" class="border rounded-xl p-4 cursor-pointer hover:border-indigo-500 transition-all text-center group bg-white" :class="{'border-indigo-500 ring-2 ring-indigo-500 bg-indigo-50': selectedCategory === 'servicios', 'border-gray-200': selectedCategory !== 'servicios'}">
+                                <div class="w-12 h-12 rounded-full mx-auto flex items-center justify-center mb-3" :class="{'bg-indigo-200 text-indigo-700': selectedCategory === 'servicios', 'bg-gray-100 text-gray-500 group-hover:bg-indigo-100 group-hover:text-indigo-600': selectedCategory !== 'servicios'}">
+                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
+                                </div>
+                                <h5 class="font-bold text-gray-900">Servicios</h5>
+                            </div>
+                            
+                            <!-- Vacia -->
+                            <div @click="selectedCategory = 'vacia'" class="border rounded-xl p-4 cursor-pointer hover:border-indigo-500 transition-all text-center group bg-white" :class="{'border-indigo-500 ring-2 ring-indigo-500 bg-indigo-50': selectedCategory === 'vacia', 'border-gray-200': selectedCategory !== 'vacia'}">
+                                <div class="w-12 h-12 rounded-full mx-auto flex items-center justify-center mb-3" :class="{'bg-indigo-200 text-indigo-700': selectedCategory === 'vacia', 'bg-gray-100 text-gray-500 group-hover:bg-indigo-100 group-hover:text-indigo-600': selectedCategory !== 'vacia'}">
+                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                                </div>
+                                <h5 class="font-bold text-gray-900">En Blanco</h5>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Step 2: Select Template -->
+                    <div x-show="step === 2" style="display: none;">
+                        <h4 class="text-lg font-medium text-gray-900 mb-1">Elige un diseño inicial</h4>
+                        <p class="text-sm text-gray-500 mb-4">Plantillas optimizadas para <span class="font-bold text-indigo-600" x-text="getCategoryName()"></span></p>
+                        
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                            <template x-for="tpl in getTemplatesForCategory()" :key="tpl.id">
+                                <div @click="selectedTemplate = tpl.id" class="border rounded-lg p-3 cursor-pointer hover:border-indigo-500 transition-all" :class="{'border-indigo-500 bg-indigo-50 ring-2 ring-indigo-500': selectedTemplate === tpl.id, 'border-gray-200': selectedTemplate !== tpl.id}">
+                                    <div class="h-32 bg-gray-50 rounded mb-3 flex items-center justify-center border border-gray-100">
+                                        <!-- Simulacion visual de wireframe -->
+                                        <div class="w-3/4 space-y-2 opacity-50">
+                                            <div class="h-2 bg-indigo-300 rounded w-1/2 mx-auto mb-4"></div>
+                                            <div class="h-1 bg-gray-300 rounded w-full"></div>
+                                            <div class="h-1 bg-gray-300 rounded w-5/6 mx-auto"></div>
+                                            <div class="h-1 bg-gray-300 rounded w-4/6 mx-auto"></div>
+                                        </div>
+                                    </div>
+                                    <h5 class="font-bold text-sm text-gray-900" x-text="tpl.name"></h5>
+                                    <p class="text-xs text-gray-500 mt-1" x-text="tpl.desc"></p>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                    
+                    <!-- Step 3: Details -->
+                    <div x-show="step === 3" style="display: none;">
+                        <h4 class="text-lg font-medium text-gray-900 mb-4">Detalles finales</h4>
+                        
+                        <div class="space-y-4 max-w-2xl">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Nombre de la Página *</label>
+                                <input type="text" x-model="pageTitle" class="w-full rounded-lg border-gray-300 shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Enlace / Slug *</label>
+                                <div class="flex">
+                                    <span class="inline-flex items-center px-3 rounded-l-md border border-r-0 border-gray-300 bg-gray-50 text-gray-500 text-sm">
+                                        /p
+                                    </span>
+                                    <input type="text" x-model="pageSlug" class="flex-1 min-w-0 block w-full px-3 py-2 rounded-none rounded-r-md border border-gray-300 focus:ring-indigo-500 focus:border-indigo-500">
+                                </div>
+                                <p class="text-xs text-gray-500 mt-1">Este enlace se genera automáticamente basado en el título.</p>
+                            </div>
+                            
+                            <div class="mt-4 p-4 border border-gray-200 rounded-lg bg-white">
+                                <div class="flex items-center gap-2 mb-3">
+                                    <input type="checkbox" id="add_to_menu_check" x-model="addToMenu" class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
+                                    <label for="add_to_menu_check" class="text-sm font-medium text-gray-700">Agregar esta página al menú principal</label>
+                                </div>
+                                <div x-show="addToMenu" class="space-y-3 pl-6 mt-2 border-l-2 border-indigo-100" style="display: none;">
+                                    <div x-show="menuItemsList.length > 0">
+                                        <label class="block text-xs font-medium text-gray-500 mb-1">¿Dónde quieres agregarla?</label>
+                                        <div class="flex gap-2">
+                                            <select x-model="menuPosition" class="rounded-lg border-gray-300 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 text-sm w-1/3">
+                                                <option value="after">Después de...</option>
+                                                <option value="before">Antes de...</option>
+                                            </select>
+                                            <select x-model="menuReferenceItem" class="rounded-lg border-gray-300 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 text-sm flex-1">
+                                                <template x-for="item in menuItemsList">
+                                                    <option :value="item.label" x-text="item.label"></option>
+                                                </template>
+                                            </select>
+                                        </div>
+                                        <p class="text-xs text-gray-400 mt-1">Selecciona la posición en el menú actual.</p>
+                                    </div>
+                                    <div x-show="menuItemsList.length === 0" class="text-sm text-gray-600 bg-gray-50 p-3 rounded-lg border border-gray-200 flex items-center gap-2">
+                                        <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                        El menú principal está actualmente vacío. Esta página se añadirá como el primer elemento del menú.
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Footer Buttons -->
+                <div class="bg-gray-50 px-6 py-4 border-t border-gray-200 flex items-center justify-between">
+                    <button type="button" @click="closeAssistant()" class="px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 shadow-sm transition-colors">
+                        Cancelar
+                    </button>
+                    
+                    <div class="flex gap-2">
+                        <button type="button" x-show="step > 1" @click="step--" class="px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 shadow-sm transition-colors" style="display: none;">
+                            Anterior
+                        </button>
+                        
+                        <button type="button" x-show="step === 1" @click="step = 2" :disabled="!selectedCategory" class="px-4 py-2 bg-indigo-600 border border-transparent rounded-lg text-sm font-medium text-white hover:bg-indigo-700 shadow-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                            Siguiente
+                        </button>
+                        
+                        <button type="button" x-show="step === 2" @click="prepareDetails()" :disabled="!selectedTemplate" class="px-4 py-2 bg-indigo-600 border border-transparent rounded-lg text-sm font-medium text-white hover:bg-indigo-700 shadow-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed" style="display: none;">
+                            Siguiente
+                        </button>
+                        
+                        <button type="button" x-show="step === 3" @click="generatePage(); closeAssistant();" :disabled="!pageTitle" class="px-4 py-2 bg-green-600 border border-transparent rounded-lg text-sm font-medium text-white hover:bg-green-700 shadow-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2" style="display: none;">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                            Generar Página
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <input type="hidden" name="_csrf_token" value="<?= Session::csrfToken() ?>">
     
-    <!-- Configuración del Logo -->
-    <div class="p-6 border-b border-gray-200 bg-white">
+    
+
+    <!-- Smart Page Assistant Modal -->
+    <div x-data="pageAssistant()" x-show="isOpen" @open-assistant.window="isOpen = true; step = 1; selectedCategory = null; selectedTemplate = null; pageTitle = ''; pageSlug = '';" style="display: none;" class="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+        <!-- Background overlay -->
+        <div class="fixed inset-0 bg-gray-900 bg-opacity-75 transition-opacity" @click="closeAssistant()"></div>
+
+        <!-- Modal panel -->
+        <div class="bg-white rounded-xl text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:max-w-4xl w-full relative z-10" @click.stop>
+            
+            <!-- Header -->
+            <div class="bg-gray-50 px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+                <h3 class="text-xl leading-6 font-bold text-gray-900 flex items-center gap-2" id="modal-title">
+                    <svg class="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"></path></svg>
+                    Asistente de Creación de Páginas
+                </h3>
+                <button type="button" @click="closeAssistant()" class="bg-gray-50 rounded-md text-gray-400 hover:text-gray-500 focus:outline-none">
+                    <span class="sr-only">Cerrar</span>
+                    <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                </button>
+            </div>
+            
+            <!-- Progress Bar -->
+            <div class="bg-white px-6 py-3 border-b border-gray-100">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-2" :class="{'text-indigo-600': step >= 1, 'text-gray-400': step < 1}">
+                        <div class="w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm" :class="{'bg-indigo-100': step >= 1, 'bg-gray-100': step < 1}">1</div>
+                        <span class="text-sm font-medium">Categoría</span>
+                    </div>
+                    <div class="flex-1 border-t-2 border-gray-100 mx-4" :class="{'border-indigo-200': step >= 2}"></div>
+                    <div class="flex items-center gap-2" :class="{'text-indigo-600': step >= 2, 'text-gray-400': step < 2}">
+                        <div class="w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm" :class="{'bg-indigo-100': step >= 2, 'bg-gray-100': step < 2}">2</div>
+                        <span class="text-sm font-medium">Plantilla</span>
+                    </div>
+                    <div class="flex-1 border-t-2 border-gray-100 mx-4" :class="{'border-indigo-200': step >= 3}"></div>
+                    <div class="flex items-center gap-2" :class="{'text-indigo-600': step >= 3, 'text-gray-400': step < 3}">
+                        <div class="w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm" :class="{'bg-indigo-100': step >= 3, 'bg-gray-100': step < 3}">3</div>
+                        <span class="text-sm font-medium">Detalles</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal Content -->
+            <div class="bg-white px-6 py-6" style="min-height: 400px; max-height: 60vh; overflow-y: auto;">
+                <!-- Step 1: Select Category -->
+                <div x-show="step === 1">
+                    <h4 class="text-lg font-medium text-gray-900 mb-4">¿Qué tipo de página deseas crear?</h4>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <template x-for="cat in categories" :key="cat.id">
+                            <div @click="selectCategory(cat.id)" class="border rounded-lg p-4 cursor-pointer hover:border-indigo-500 hover:shadow-md transition-all flex items-start gap-4" :class="{'border-indigo-500 bg-indigo-50 ring-1 ring-indigo-500': selectedCategory === cat.id, 'border-gray-200': selectedCategory !== cat.id}">
+                                <div class="text-indigo-600 p-2 bg-white rounded-lg border border-indigo-100 shadow-sm" x-html="cat.icon"></div>
+                                <div>
+                                    <h5 class="font-bold text-gray-900" x-text="cat.name"></h5>
+                                    <p class="text-sm text-gray-500 mt-1" x-text="cat.description"></p>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+
+                <!-- Step 2: Select Template -->
+                <div x-show="step === 2" style="display: none;">
+                    <h4 class="text-lg font-medium text-gray-900 mb-1">Elige un diseño inicial</h4>
+                    <p class="text-sm text-gray-500 mb-4">Plantillas optimizadas para <span class="font-bold text-indigo-600" x-text="getCategoryName()"></span></p>
+                    
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <template x-for="tpl in getTemplatesForCategory()" :key="tpl.id">
+                            <div @click="selectedTemplate = tpl.id" class="border rounded-lg p-3 cursor-pointer hover:border-indigo-500 transition-all" :class="{'border-indigo-500 bg-indigo-50 ring-2 ring-indigo-500': selectedTemplate === tpl.id, 'border-gray-200': selectedTemplate !== tpl.id}">
+                                <div class="h-32 bg-gray-50 rounded mb-3 flex items-center justify-center p-2" x-html="tpl.thumbnail"></div>
+                                <h5 class="font-medium text-sm text-center text-gray-900" x-text="tpl.name"></h5>
+                            </div>
+                        </template>
+                    </div>
+                    
+                    <div x-show="getTemplatesForCategory().length === 0" class="text-center py-12">
+                        <p class="text-gray-500">No hay plantillas disponibles para esta categoría.</p>
+                    </div>
+                </div>
+
+                <!-- Step 3: Page Details -->
+                <div x-show="step === 3" style="display: none;">
+                    <h4 class="text-lg font-medium text-gray-900 mb-4">Configura los detalles finales</h4>
+                    <div class="space-y-4 max-w-lg mx-auto">
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-1">Título de la Página</label>
+                            <input type="text" x-model="pageTitle" @input="updateSlug()" class="w-full rounded-lg border-gray-300 border px-3 py-2 text-sm focus:ring-indigo-500 focus:border-indigo-500" placeholder="Ej: Quiénes Somos" required>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-1">Enlace / URL Permanente</label>
+                            <div class="flex items-center">
+                                <span class="bg-gray-100 border border-gray-300 border-r-0 rounded-l-lg px-3 py-2 text-sm text-gray-500">/p/</span>
+                                <input type="text" x-model="pageSlug" class="w-full rounded-r-lg border-gray-300 border px-3 py-2 text-sm focus:ring-indigo-500 focus:border-indigo-500 bg-gray-50" readonly>
+                            </div>
+                            <p class="text-xs text-gray-500 mt-1">Este enlace se genera automáticamente basado en el título.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Footer Buttons -->
+            <div class="bg-gray-50 px-6 py-4 border-t border-gray-200 flex items-center justify-between">
+                <button type="button" @click="closeAssistant()" class="px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 shadow-sm transition-colors">
+                    Cancelar
+                </button>
+                
+                <div class="flex gap-2">
+                    <button type="button" x-show="step > 1" @click="step--" class="px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 shadow-sm transition-colors" style="display: none;">
+                        Anterior
+                    </button>
+                    
+                    <button type="button" x-show="step === 1" @click="step = 2" :disabled="!selectedCategory" class="px-4 py-2 bg-indigo-600 border border-transparent rounded-lg text-sm font-medium text-white hover:bg-indigo-700 shadow-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                        Siguiente
+                    </button>
+                    
+                    <button type="button" x-show="step === 2" @click="prepareDetails()" :disabled="!selectedTemplate" class="px-4 py-2 bg-indigo-600 border border-transparent rounded-lg text-sm font-medium text-white hover:bg-indigo-700 shadow-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed" style="display: none;">
+                        Siguiente
+                    </button>
+                    
+                    <button type="button" x-show="step === 3" @click="generatePage(); closeAssistant();" :disabled="!pageTitle" class="px-4 py-2 bg-green-600 border border-transparent rounded-lg text-sm font-medium text-white hover:bg-green-700 shadow-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2" style="display: none;">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                        Generar Página
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div x-data="{ activeTab: 'menu' }" class="w-full">
+
+        <!-- Menú de Thumbnails -->
+        <div x-show="activeTab === 'menu'" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+            <div @click="activeTab = 'logo'" class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm hover:shadow-md cursor-pointer transition-all flex flex-col items-center text-center gap-4 hover:border-blue-300 group">
+                <div class="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center text-blue-600 group-hover:scale-110 transition-transform"><svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg></div>
+                <div><h3 class="text-lg font-bold text-gray-900">Logo y Favicon</h3><p class="text-sm text-gray-500 mt-1">Configura la identidad visual de tu tienda.</p></div>
+            </div>
+            <div @click="activeTab = 'seo'" class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm hover:shadow-md cursor-pointer transition-all flex flex-col items-center text-center gap-4 hover:border-blue-300 group">
+                <div class="w-16 h-16 bg-indigo-50 rounded-full flex items-center justify-center text-indigo-600 group-hover:scale-110 transition-transform"><svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"></path></svg></div>
+                <div><h3 class="text-lg font-bold text-gray-900">Páginas y SEO</h3><p class="text-sm text-gray-500 mt-1">Optimización, metaetiquetas y páginas personalizadas.</p></div>
+            </div>
+            <div @click="activeTab = 'ribbon'" class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm hover:shadow-md cursor-pointer transition-all flex flex-col items-center text-center gap-4 hover:border-blue-300 group">
+                <div class="w-16 h-16 bg-purple-50 rounded-full flex items-center justify-center text-purple-600 group-hover:scale-110 transition-transform"><svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z"></path></svg></div>
+                <div><h3 class="text-lg font-bold text-gray-900">Barra de Anuncios</h3><p class="text-sm text-gray-500 mt-1">Cinta superior para promociones o envíos.</p></div>
+            </div>
+            <div @click="activeTab = 'hero'" class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm hover:shadow-md cursor-pointer transition-all flex flex-col items-center text-center gap-4 hover:border-blue-300 group">
+                <div class="w-16 h-16 bg-orange-50 rounded-full flex items-center justify-center text-orange-600 group-hover:scale-110 transition-transform"><svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg></div>
+                <div><h3 class="text-lg font-bold text-gray-900">Carrusel Principal</h3><p class="text-sm text-gray-500 mt-1">Banners principales (Hero) de la tienda.</p></div>
+            </div>
+            <div @click="activeTab = 'products'" class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm hover:shadow-md cursor-pointer transition-all flex flex-col items-center text-center gap-4 hover:border-blue-300 group">
+                <div class="w-16 h-16 bg-green-50 rounded-full flex items-center justify-center text-green-600 group-hover:scale-110 transition-transform"><svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 002-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg></div>
+                <div><h3 class="text-lg font-bold text-gray-900">Bloques de Productos</h3><p class="text-sm text-gray-500 mt-1">Destacados, novedades y colecciones.</p></div>
+            </div>
+            <div @click="activeTab = 'footer'" class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm hover:shadow-md cursor-pointer transition-all flex flex-col items-center text-center gap-4 hover:border-blue-300 group">
+                <div class="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center text-gray-600 group-hover:scale-110 transition-transform"><svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path></svg></div>
+                <div><h3 class="text-lg font-bold text-gray-900">Pie de Página</h3><p class="text-sm text-gray-500 mt-1">Configura el menú y datos del footer.</p></div>
+            </div>
+        </div>
+
+        <!-- Botón Volver al Menú -->
+        <div x-show="activeTab !== 'menu'" class="mb-4" style="display: none;">
+            <button type="button" @click="activeTab = 'menu'" class="text-gray-500 hover:text-gray-900 flex items-center gap-2 text-sm font-medium transition-colors bg-white px-4 py-2 rounded-lg shadow-sm border border-gray-200">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+                Volver al Menú de Secciones
+            </button>
+        </div>
+        
+        <!-- Secciones -->
+<div x-show="activeTab === 'logo'" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 translate-y-2" x-transition:enter-end="opacity-100 translate-y-0" class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden" style="display: none;">
+<!-- Configuración del Logo -->
+    
+</div>
+<div x-show="activeTab === 'seo'" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 translate-y-2" x-transition:enter-end="opacity-100 translate-y-0" class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden" style="display: none;">
+<div class="p-6 border-b border-gray-200 bg-white">
         <h3 class="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
             <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
             Logo del Sitio
@@ -80,7 +557,91 @@ use App\Core\Session;
         </div>
     </div>
     
-    <div class="p-6 border-b border-gray-200 bg-gray-50/50">
+    
+    <!-- Creador de Páginas Personalizadas -->
+    <div class="p-6 border-t border-gray-200 bg-gray-50">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="text-lg font-bold text-gray-900 flex items-center gap-2">
+                <svg class="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                Páginas Personalizadas
+            </h3>
+            <button type="button" onclick="window.dispatchEvent(new CustomEvent('open-assistant'))" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 shadow-sm">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
+                Añadir Página
+            </button>
+        </div>
+        <p class="text-xs text-gray-500 mb-4">Crea páginas adicionales como "Quiénes Somos" o "Contacto" que luego podrás agregar al menú principal.</p>
+        
+        <div id="custom-pages-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            <!-- Pages will be rendered here by JS -->
+        </div>
+
+        <!-- Page Editor Modal -->
+        <div x-data="pageEditor()" @open-page-editor.window="openEditor($event.detail)" x-show="open" class="fixed inset-0 z-[100] flex items-center justify-center bg-gray-900/50 backdrop-blur-sm" style="display: none;">
+            <div @click.away="closeEditor()" class="bg-white rounded-2xl shadow-xl w-full max-w-5xl max-h-[90vh] overflow-hidden flex flex-col mx-4">
+                <!-- Modal Header -->
+                <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/80">
+                    <h3 class="text-lg font-bold text-gray-900 flex items-center gap-2">
+                        <svg class="w-5 h-5 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                        Editor de Página
+                    </h3>
+                    <button type="button" @click="closeEditor()" class="text-gray-400 hover:text-red-500 transition-colors">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                    </button>
+                </div>
+                
+                <!-- Modal Body -->
+                <div class="p-6 overflow-y-auto flex-1 bg-white">
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">Título de la Página</label>
+                                <input type="text" x-model="title" class="w-full rounded-lg border-gray-300 border px-3 py-2 text-sm focus:ring-blue-500 focus:border-blue-500">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">URL / Slug</label>
+                                <input type="text" x-model="slug" class="w-full rounded-lg border-gray-300 border px-3 py-2 text-sm focus:ring-blue-500 focus:border-blue-500 font-mono">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">Meta Descripción</label>
+                                <textarea x-model="metaDesc" rows="3" class="w-full rounded-lg border-gray-300 border px-3 py-2 text-sm focus:ring-blue-500 focus:border-blue-500"></textarea>
+                            </div>
+                        </div>
+                        <div class="lg:col-span-2 flex flex-col h-full min-h-[500px]">
+                            <div class="flex justify-between items-center mb-2">
+                                <label class="block text-xs font-semibold text-gray-700 uppercase tracking-wider">Contenido Visual (Editable Directamente)</label>
+                                <div class="flex bg-gray-100 rounded-lg p-0.5 border border-gray-200">
+                                    <button type="button" @click="setMode('visual')" :class="mode === 'visual' ? 'bg-white shadow-sm text-indigo-600' : 'text-gray-500 hover:text-gray-700'" class="px-3 py-1 text-xs font-bold rounded-md transition-all">Editor Visual</button>
+                                    <button type="button" @click="setMode('html')" :class="mode === 'html' ? 'bg-white shadow-sm text-indigo-600' : 'text-gray-500 hover:text-gray-700'" class="px-3 py-1 text-xs font-bold rounded-md transition-all">Código HTML</button>
+                                </div>
+                            </div>
+                            <div class="flex-1 border border-gray-200 rounded-lg overflow-hidden bg-white shadow-inner flex flex-col">
+                                <div x-show="mode === 'html'" class="flex-1 w-full h-full">
+                                    <textarea x-model="content" class="w-full h-full border-0 p-4 text-xs font-mono focus:ring-0 bg-gray-50 resize-none"></textarea>
+                                </div>
+                                <div x-show="mode === 'visual'" class="flex-1 w-full h-full" wire:ignore>
+                                    <textarea id="tinymce-editor" x-model="content" class="w-full h-full border-0"></textarea>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Modal Footer -->
+                <div class="px-6 py-4 border-t border-gray-100 bg-gray-50 flex justify-end gap-3">
+                    <button type="button" @click="closeEditor()" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 shadow-sm">Cancelar</button>
+                    <button type="button" @click="saveEditor()" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 shadow-sm flex items-center gap-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                        Aplicar Cambios
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+<div x-show="activeTab === 'ribbon'" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 translate-y-2" x-transition:enter-end="opacity-100 translate-y-0" class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden" style="display: none;">
+<div class="p-6 border-b border-gray-200 bg-gray-50/50">
         <h3 class="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
             <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z"></path></svg>
             Barra de Anuncios (Ribbon)
@@ -181,7 +742,10 @@ use App\Core\Session;
         </div>
     </div>
 
-    <!-- HERO SECTION (DYNAMIC SLIDES) -->
+    
+</div>
+<div x-show="activeTab === 'hero'" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 translate-y-2" x-transition:enter-end="opacity-100 translate-y-0" class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden" style="display: none;">
+<!-- HERO SECTION (DYNAMIC SLIDES) -->
     <?php
     $settingModel = new \App\Models\Setting();
     $heroSettings = $settingModel->get('home_hero_settings', ['is_active' => false]);
@@ -234,7 +798,10 @@ use App\Core\Session;
         </div>
     </div>
 
-    <div class="p-6">
+    
+</div>
+<div x-show="activeTab === 'products'" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 translate-y-2" x-transition:enter-end="opacity-100 translate-y-0" class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden" style="display: none;">
+<div class="p-6">
         <div class="flex justify-between items-center mb-4">
             <h3 class="text-lg font-bold text-gray-900 flex items-center gap-2">
                 <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path></svg>
@@ -256,7 +823,99 @@ use App\Core\Session;
         </div>
     </div>
     
-    <div class="px-6 py-4 bg-gray-50 border-t border-gray-200 flex justify-end rounded-b-xl">
+    
+</div>
+<div x-show="activeTab === 'footer'" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 translate-y-2" x-transition:enter-end="opacity-100 translate-y-0" class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden" style="display: none;">
+
+        <div class="p-6 border-b border-gray-200 bg-white flex justify-between items-center">
+            <h3 class="text-lg font-bold text-gray-900 flex items-center gap-2">
+                <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path></svg>
+                Información del Pie de Página
+            </h3>
+        </div>
+        <div class="p-6 space-y-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">Sobre Nosotros (Footer)</label>
+                    <textarea name="footer[about_text]" rows="4" class="w-full rounded-lg border-gray-300 border px-3 py-2 text-sm focus:ring-blue-500 focus:border-blue-500" placeholder="Breve descripción de la tienda..."><?= htmlspecialchars($settings['footer']['about_text'] ?? '') ?></textarea>
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">Información de Contacto</label>
+                    <div class="space-y-3">
+                        <input type="text" name="footer[contact_email]" value="<?= htmlspecialchars($settings['footer']['contact_email'] ?? '') ?>" class="w-full rounded-lg border-gray-300 border px-3 py-2 text-sm" placeholder="Email de contacto">
+                        <input type="text" name="footer[contact_phone]" value="<?= htmlspecialchars($settings['footer']['contact_phone'] ?? '') ?>" class="w-full rounded-lg border-gray-300 border px-3 py-2 text-sm" placeholder="Teléfono">
+                        <input type="text" name="footer[contact_address]" value="<?= htmlspecialchars($settings['footer']['contact_address'] ?? '') ?>" class="w-full rounded-lg border-gray-300 border px-3 py-2 text-sm" placeholder="Dirección física">
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Redes Sociales -->
+            <div class="border-t border-gray-200 pt-6">
+                <h4 class="text-sm font-semibold text-gray-900 mb-4">Redes Sociales</h4>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div>
+                        <label class="block text-xs text-gray-500 mb-1">Facebook</label>
+                        <input type="url" name="footer[social_facebook]" value="<?= htmlspecialchars($settings['footer']['social_facebook'] ?? '') ?>" class="w-full rounded-lg border-gray-300 border px-3 py-2 text-sm" placeholder="URL del perfil">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-500 mb-1">Instagram</label>
+                        <input type="url" name="footer[social_instagram]" value="<?= htmlspecialchars($settings['footer']['social_instagram'] ?? '') ?>" class="w-full rounded-lg border-gray-300 border px-3 py-2 text-sm" placeholder="URL del perfil">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-500 mb-1">Twitter/X</label>
+                        <input type="url" name="footer[social_twitter]" value="<?= htmlspecialchars($settings['footer']['social_twitter'] ?? '') ?>" class="w-full rounded-lg border-gray-300 border px-3 py-2 text-sm" placeholder="URL del perfil">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Menú Principal -->
+            <input type="hidden" id="menu-data-main" value="<?= htmlspecialchars(json_encode(array_values($navigationMenus['main']['items'] ?? []))) ?>">
+            <div class="border-t border-gray-200 pt-6" x-data="menuEditor('main', <?= htmlspecialchars(json_encode(array_values($navigationMenus['main']['items'] ?? []))) ?>)" @add-to-menu.window="handleAddToMenu($event)">
+                <h4 class="text-sm font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                    <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+                    Menú Principal
+                </h4>
+                <input type="hidden" name="navigation_menus[main][items]" :value="JSON.stringify(items)">
+                <div class="space-y-3 mb-4">
+                    <template x-for="(item, index) in items" :key="index">
+                        <div class="flex items-center gap-3 p-3 border border-gray-200 rounded-lg bg-gray-50">
+                            <div class="flex-grow grid grid-cols-2 gap-3">
+                                <input type="text" x-model="item.label" class="w-full rounded-lg border-gray-300 border px-3 py-1.5 text-sm" placeholder="Etiqueta">
+                                <input type="text" x-model="item.link" class="w-full rounded-lg border-gray-300 border px-3 py-1.5 text-sm" placeholder="Enlace">
+                            </div>
+                            <button type="button" @click="removeItem(index)" class="text-gray-400 hover:text-red-500"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
+                        </div>
+                    </template>
+                </div>
+                <button type="button" @click="addItem()" class="text-blue-600 hover:text-blue-800 text-sm font-medium">+ Añadir Enlace</button>
+            </div>
+
+            <!-- Menú Footer -->
+            <input type="hidden" id="menu-data-footer" value="<?= htmlspecialchars(json_encode(array_values($navigationMenus['footer']['items'] ?? []))) ?>">
+            <div class="border-t border-gray-200 pt-6" x-data="menuEditor('footer', <?= htmlspecialchars(json_encode(array_values($navigationMenus['footer']['items'] ?? []))) ?>)" @add-to-menu.window="handleAddToMenu($event)">
+                <h4 class="text-sm font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                    <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+                    Menú Pie de Página (Legales, Soporte)
+                </h4>
+                <input type="hidden" name="navigation_menus[footer][items]" :value="JSON.stringify(items)">
+                <div class="space-y-3 mb-4">
+                    <template x-for="(item, index) in items" :key="index">
+                        <div class="flex items-center gap-3 p-3 border border-gray-200 rounded-lg bg-gray-50">
+                            <div class="flex-grow grid grid-cols-2 gap-3">
+                                <input type="text" x-model="item.label" class="w-full rounded-lg border-gray-300 border px-3 py-1.5 text-sm" placeholder="Etiqueta">
+                                <input type="text" x-model="item.link" class="w-full rounded-lg border-gray-300 border px-3 py-1.5 text-sm" placeholder="Enlace">
+                            </div>
+                            <button type="button" @click="removeItem(index)" class="text-gray-400 hover:text-red-500"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
+                        </div>
+                    </template>
+                </div>
+                <button type="button" @click="addItem()" class="text-blue-600 hover:text-blue-800 text-sm font-medium">+ Añadir Enlace</button>
+            </div>
+        </div>
+
+</div>
+    </div>
+<div class="px-6 py-4 bg-gray-50 border-t border-gray-200 flex justify-end rounded-b-xl">
         <button type="submit" class="bg-green-600 hover:bg-green-700 text-white px-6 py-2.5 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 shadow-sm">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
             Guardar Configuración
@@ -613,4 +1272,201 @@ use App\Core\Session;
             }
         });
     });
+
+    // ---- CUSTOM PAGES: Add a new page card ----
+    let customPageIndex = document.querySelectorAll('.custom-page-item').length;
+
+    function addCustomPage(data = {}, autoScroll = true) {
+        const container = document.getElementById('custom-pages-container');
+        const index = customPageIndex++;
+        const safeTitle = (data.title || '').replace(/"/g, '&quot;');
+        const safeSlug = (data.slug || '').replace(/"/g, '&quot;');
+        const safeMeta = (data.meta_description || '').replace(/"/g, '&quot;');
+        const content   = data.content || '';
+
+        const cardHtml = `
+        <div class="custom-page-item bg-white border border-gray-200 hover:border-indigo-500 rounded-2xl shadow-sm hover:shadow-md transition-all cursor-pointer overflow-hidden flex flex-col h-56 group relative" id="cp-card-${index}">
+            
+            <div class="bg-indigo-50/50 flex-1 flex flex-col items-center justify-center cursor-pointer" onclick="window.dispatchEvent(new CustomEvent('open-page-editor', { detail: ${index} }))">
+                <svg class="w-12 h-12 text-indigo-300 mb-3 group-hover:scale-110 group-hover:text-indigo-400 transition-all" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10l6 6v10a2 2 0 01-2 2z"></path></svg>
+                <span class="text-xs font-semibold text-indigo-700 bg-indigo-100 px-3 py-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-sm">Editar Página</span>
+            </div>
+            
+            <div class="p-4 border-t border-gray-100 bg-white" onclick="window.dispatchEvent(new CustomEvent('open-page-editor', { detail: ${index} }))">
+                <h4 class="font-bold text-gray-800 text-sm truncate thumb-title">${safeTitle || 'Nueva Página'}</h4>
+                <p class="text-xs text-gray-400 font-mono truncate mt-0.5 thumb-slug">${safeSlug || ''}</p>
+            </div>
+            
+            <button type="button" onclick="this.closest('.custom-page-item').remove()" class="absolute top-2 right-2 bg-red-500 text-white p-1.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity z-10 hover:bg-red-600 shadow-sm" title="Eliminar Página">
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+            
+            <div class="hidden">
+                <input type="hidden" name="custom_pages[${index}][title]" value="${safeTitle}">
+                <input type="hidden" name="custom_pages[${index}][slug]" value="${safeSlug}">
+                <input type="hidden" name="custom_pages[${index}][meta_description]" value="${safeMeta}">
+                <textarea name="custom_pages[${index}][content]" class="hidden">${content.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</textarea>
+            </div>
+        </div>`;
+
+        container.insertAdjacentHTML('beforeend', cardHtml);
+        const newCard = document.getElementById('cp-card-' + index);
+
+        // Scroll to card if requested
+        if (autoScroll) {
+            newCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            // Automatically open editor for newly added pages
+            window.dispatchEvent(new CustomEvent('open-page-editor', { detail: index }));
+        }
+    }
+
+    function pageEditor() {
+        return {
+            open: false,
+            index: null,
+            title: '',
+            slug: '',
+            metaDesc: '',
+            content: '',
+            mode: 'visual',
+            
+            initEditor() {
+                if (typeof tinymce === 'undefined') {
+                    const script = document.createElement('script');
+                    script.src = '/assets/js/tinymce/tinymce.min.js';
+                    script.onload = () => {
+                        this.initTinyMCE();
+                    };
+                    script.onerror = () => {
+                        console.error("Failed to load local TinyMCE");
+                        document.getElementById('tinymce-editor').value = "Error: No se pudo cargar el Editor Visual localmente.";
+                    };
+                    document.head.appendChild(script);
+                } else {
+                    this.initTinyMCE();
+                }
+            },
+            
+            initTinyMCE() {
+                tinymce.init({
+                    selector: '#tinymce-editor',
+                    height: '100%',
+                    menubar: false,
+                    plugins: 'code lists link image media table',
+                    toolbar: 'undo redo | blocks | bold italic | alignleft aligncenter alignright | bullist numlist | code',
+                    valid_elements: '*[*]',
+                    extended_valid_elements: '*[*]',
+                    verify_html: false,
+                    content_style: 'body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; font-size: 14px; } svg { max-width: 48px; max-height: 48px; display: block; vertical-align: middle; }',
+                    setup: (editor) => {
+                        editor.on('init', () => {
+                            // Load Tailwind CSS into the iframe
+                            const script = editor.getDoc().createElement('script');
+                            script.src = 'https://cdn.tailwindcss.com';
+                            editor.getDoc().head.appendChild(script);
+                            editor.setContent(this.content);
+                        });
+                        editor.on('input change keyup', () => {
+                            this.content = editor.getContent();
+                        });
+                    }
+                });
+            },
+
+            openEditor(idx) {
+                this.index = idx;
+                const card = document.getElementById('cp-card-' + idx);
+                this.title = card.querySelector('input[name$="[title]"]').value;
+                this.slug = card.querySelector('input[name$="[slug]"]').value;
+                this.metaDesc = card.querySelector('input[name$="[meta_description]"]').value;
+                this.content = card.querySelector('textarea[name$="[content]"]').value;
+                this.mode = 'visual';
+                this.open = true;
+                this.refreshPreview();
+                
+                // Initialize or update TinyMCE
+                setTimeout(() => {
+                    if (typeof tinymce !== 'undefined' && tinymce.get('tinymce-editor')) {
+                        tinymce.get('tinymce-editor').setContent(this.content);
+                    } else {
+                        this.initEditor();
+                    }
+                }, 100);
+            },
+            
+            setMode(newMode) {
+                this.mode = newMode;
+                if (newMode === 'visual') {
+                    if (typeof tinymce !== 'undefined' && tinymce.get('tinymce-editor')) {
+                        tinymce.get('tinymce-editor').setContent(this.content);
+                    }
+                } else if (newMode === 'html') {
+                    if (typeof tinymce !== 'undefined' && tinymce.get('tinymce-editor')) {
+                        this.content = tinymce.get('tinymce-editor').getContent();
+                    }
+                }
+            },
+            
+            closeEditor() {
+                this.open = false;
+            },
+            
+            saveEditor() {
+                if (this.mode === 'visual' && typeof tinymce !== 'undefined' && tinymce.get('tinymce-editor')) {
+                    this.content = tinymce.get('tinymce-editor').getContent();
+                }
+                
+                const card = document.getElementById('cp-card-' + this.index);
+                card.querySelector('input[name$="[title]"]').value = this.title;
+                card.querySelector('input[name$="[slug]"]').value = this.slug;
+                card.querySelector('input[name$="[meta_description]"]').value = this.metaDesc;
+                card.querySelector('textarea[name$="[content]"]').value = this.content;
+                
+                card.querySelector('.thumb-title').textContent = this.title || 'Nueva Página';
+                card.querySelector('.thumb-slug').textContent = this.slug;
+                this.open = false;
+            },
+            
+            refreshPreview() {
+                // Ya no hay iframe de vista previa, TinyMCE se encarga directamente.
+            }
+        }
+    }
+
+    // Initialize existing pages on load
+    document.addEventListener('DOMContentLoaded', () => {
+        const existingPages = <?= json_encode(array_values($customPages ?? [])) ?>;
+        existingPages.forEach(p => addCustomPage(p, false));
+    });
+
+    function menuEditor(menuId, initialItems = []) {
+        return {
+            items: initialItems,
+            addItem() {
+                this.items.push({ label: '', link: '' });
+            },
+            removeItem(index) {
+                this.items.splice(index, 1);
+            },
+            handleAddToMenu(e) {
+                if (e.detail.menu === menuId) {
+                    const newItem = { label: e.detail.label, link: e.detail.link };
+                    let insertIndex = this.items.length;
+                    if (e.detail.reference) {
+                        const refIdx = this.items.findIndex(i => i.label === e.detail.reference);
+                        if (refIdx !== -1) {
+                            insertIndex = e.detail.position === 'before' ? refIdx : refIdx + 1;
+                        }
+                    }
+                    this.items.splice(insertIndex, 0, newItem);
+                }
+            }
+        }
+    }
+
 </script>
+
+
+
+<!-- TinyMCE CDN para el Creador de Páginas -->
+<script src="https://cdn.tiny.cloud/1/no-api-key/tinymce/6/tinymce.min.js" referrerpolicy="origin"></script>

@@ -23,8 +23,9 @@ class Database
                     PDO::ATTR_EMULATE_PREPARES => false,
                 ]);
             } catch (PDOException $e) {
-                // En producción no se debería mostrar el error directamente
-                die("Database connection failed: " . $e->getMessage());
+                // En producción no se debe mostrar el error directo, solo se guarda en los logs
+                error_log("Database connection failed: " . $e->getMessage());
+                die("Database connection failed. Please check the logs.");
             }
         }
 

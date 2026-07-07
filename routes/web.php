@@ -91,7 +91,5 @@ $router->get('/admin/settings/brand', [\App\Controllers\SettingController::class
 $router->post('/admin/settings/brand', [\App\Controllers\SettingController::class, 'saveBrand']);
 $router->post('/admin/settings/delete-asset', [\App\Controllers\SettingController::class, 'deleteAsset']);
 
-// Menús (Navegación)
-$router->get('/admin/menus', [\App\Controllers\MenuController::class, 'index']);
-$router->get('/admin/menus/{id}/edit', [\App\Controllers\MenuController::class, 'edit']);
-$router->post('/admin/menus/{id}', [\App\Controllers\MenuController::class, 'update']);
+// Páginas Personalizadas
+$router->get('/p/{slug}', [\App\Controllers\HomeController::class, 'page']);
