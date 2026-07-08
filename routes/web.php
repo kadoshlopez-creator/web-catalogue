@@ -91,5 +91,8 @@ $router->get('/admin/settings/brand', [\App\Controllers\SettingController::class
 $router->post('/admin/settings/brand', [\App\Controllers\SettingController::class, 'saveBrand']);
 $router->post('/admin/settings/delete-asset', [\App\Controllers\SettingController::class, 'deleteAsset']);
 
+// Contacto
+$router->post('/contacto/enviar', [\App\Controllers\ContactController::class, 'send']);
+
 // Páginas Personalizadas
 $router->get('/p/{slug}', [\App\Controllers\HomeController::class, 'page']);

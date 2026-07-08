@@ -148,6 +148,11 @@ class HomeController extends Controller
             $this->redirect('/');
             return;
         }
+        
+        // Inject CSRF token into functional forms embedded in custom pages
+        if (isset($page['content'])) {
+            $page['content'] = str_replace('{{csrf_token}}', \App\Core\Session::csrfToken(), $page['content']);
+        }
 
         return $this->render('public/page', [
             'title' => $page['title'] ?? 'Página',
