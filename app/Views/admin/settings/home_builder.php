@@ -326,131 +326,6 @@ use App\Core\Session;
     
     
 
-    <!-- Smart Page Assistant Modal -->
-    <div x-data="pageAssistant()" x-show="isOpen" @open-assistant.window="isOpen = true; step = 1; selectedCategory = null; selectedTemplate = null; pageTitle = ''; pageSlug = '';" style="display: none;" class="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
-        <!-- Background overlay -->
-        <div class="fixed inset-0 bg-gray-900 bg-opacity-75 transition-opacity" @click="closeAssistant()"></div>
-
-        <!-- Modal panel -->
-        <div class="bg-white rounded-xl text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:max-w-4xl w-full relative z-10" @click.stop>
-            
-            <!-- Header -->
-            <div class="bg-gray-50 px-6 py-4 border-b border-gray-200 flex justify-between items-center">
-                <h3 class="text-xl leading-6 font-bold text-gray-900 flex items-center gap-2" id="modal-title">
-                    <svg class="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"></path></svg>
-                    Asistente de Creación de Páginas
-                </h3>
-                <button type="button" @click="closeAssistant()" class="bg-gray-50 rounded-md text-gray-400 hover:text-gray-500 focus:outline-none">
-                    <span class="sr-only">Cerrar</span>
-                    <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
-                </button>
-            </div>
-            
-            <!-- Progress Bar -->
-            <div class="bg-white px-6 py-3 border-b border-gray-100">
-                <div class="flex items-center justify-between">
-                    <div class="flex items-center gap-2" :class="{'text-indigo-600': step >= 1, 'text-gray-400': step < 1}">
-                        <div class="w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm" :class="{'bg-indigo-100': step >= 1, 'bg-gray-100': step < 1}">1</div>
-                        <span class="text-sm font-medium">Categoría</span>
-                    </div>
-                    <div class="flex-1 border-t-2 border-gray-100 mx-4" :class="{'border-indigo-200': step >= 2}"></div>
-                    <div class="flex items-center gap-2" :class="{'text-indigo-600': step >= 2, 'text-gray-400': step < 2}">
-                        <div class="w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm" :class="{'bg-indigo-100': step >= 2, 'bg-gray-100': step < 2}">2</div>
-                        <span class="text-sm font-medium">Plantilla</span>
-                    </div>
-                    <div class="flex-1 border-t-2 border-gray-100 mx-4" :class="{'border-indigo-200': step >= 3}"></div>
-                    <div class="flex items-center gap-2" :class="{'text-indigo-600': step >= 3, 'text-gray-400': step < 3}">
-                        <div class="w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm" :class="{'bg-indigo-100': step >= 3, 'bg-gray-100': step < 3}">3</div>
-                        <span class="text-sm font-medium">Detalles</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Modal Content -->
-            <div class="bg-white px-6 py-6" style="min-height: 400px; max-height: 60vh; overflow-y: auto;">
-                <!-- Step 1: Select Category -->
-                <div x-show="step === 1">
-                    <h4 class="text-lg font-medium text-gray-900 mb-4">¿Qué tipo de página deseas crear?</h4>
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <template x-for="cat in categories" :key="cat.id">
-                            <div @click="selectCategory(cat.id)" class="border rounded-lg p-4 cursor-pointer hover:border-indigo-500 hover:shadow-md transition-all flex items-start gap-4" :class="{'border-indigo-500 bg-indigo-50 ring-1 ring-indigo-500': selectedCategory === cat.id, 'border-gray-200': selectedCategory !== cat.id}">
-                                <div class="text-indigo-600 p-2 bg-white rounded-lg border border-indigo-100 shadow-sm" x-html="cat.icon"></div>
-                                <div>
-                                    <h5 class="font-bold text-gray-900" x-text="cat.name"></h5>
-                                    <p class="text-sm text-gray-500 mt-1" x-text="cat.description"></p>
-                                </div>
-                            </div>
-                        </template>
-                    </div>
-                </div>
-
-                <!-- Step 2: Select Template -->
-                <div x-show="step === 2" style="display: none;">
-                    <h4 class="text-lg font-medium text-gray-900 mb-1">Elige un diseño inicial</h4>
-                    <p class="text-sm text-gray-500 mb-4">Plantillas optimizadas para <span class="font-bold text-indigo-600" x-text="getCategoryName()"></span></p>
-                    
-                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                        <template x-for="tpl in getTemplatesForCategory()" :key="tpl.id">
-                            <div @click="selectedTemplate = tpl.id" class="border rounded-lg p-3 cursor-pointer hover:border-indigo-500 transition-all" :class="{'border-indigo-500 bg-indigo-50 ring-2 ring-indigo-500': selectedTemplate === tpl.id, 'border-gray-200': selectedTemplate !== tpl.id}">
-                                <div class="h-32 bg-gray-50 rounded mb-3 flex items-center justify-center p-2" x-html="tpl.thumbnail"></div>
-                                <h5 class="font-medium text-sm text-center text-gray-900" x-text="tpl.name"></h5>
-                            </div>
-                        </template>
-                    </div>
-                    
-                    <div x-show="getTemplatesForCategory().length === 0" class="text-center py-12">
-                        <p class="text-gray-500">No hay plantillas disponibles para esta categoría.</p>
-                    </div>
-                </div>
-
-                <!-- Step 3: Page Details -->
-                <div x-show="step === 3" style="display: none;">
-                    <h4 class="text-lg font-medium text-gray-900 mb-4">Configura los detalles finales</h4>
-                    <div class="space-y-4 max-w-lg mx-auto">
-                        <div>
-                            <label class="block text-sm font-semibold text-gray-700 mb-1">Título de la Página</label>
-                            <input type="text" x-model="pageTitle" @input="updateSlug()" class="w-full rounded-lg border-gray-300 border px-3 py-2 text-sm focus:ring-indigo-500 focus:border-indigo-500" placeholder="Ej: Quiénes Somos" required>
-                        </div>
-                        <div>
-                            <label class="block text-sm font-semibold text-gray-700 mb-1">Enlace / URL Permanente</label>
-                            <div class="flex items-center">
-                                <span class="bg-gray-100 border border-gray-300 border-r-0 rounded-l-lg px-3 py-2 text-sm text-gray-500">/p/</span>
-                                <input type="text" x-model="pageSlug" class="w-full rounded-r-lg border-gray-300 border px-3 py-2 text-sm focus:ring-indigo-500 focus:border-indigo-500 bg-gray-50" readonly>
-                            </div>
-                            <p class="text-xs text-gray-500 mt-1">Este enlace se genera automáticamente basado en el título.</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Footer Buttons -->
-            <div class="bg-gray-50 px-6 py-4 border-t border-gray-200 flex items-center justify-between">
-                <button type="button" @click="closeAssistant()" class="px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 shadow-sm transition-colors">
-                    Cancelar
-                </button>
-                
-                <div class="flex gap-2">
-                    <button type="button" x-show="step > 1" @click="step--" class="px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 shadow-sm transition-colors" style="display: none;">
-                        Anterior
-                    </button>
-                    
-                    <button type="button" x-show="step === 1" @click="step = 2" :disabled="!selectedCategory" class="px-4 py-2 bg-indigo-600 border border-transparent rounded-lg text-sm font-medium text-white hover:bg-indigo-700 shadow-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
-                        Siguiente
-                    </button>
-                    
-                    <button type="button" x-show="step === 2" @click="prepareDetails()" :disabled="!selectedTemplate" class="px-4 py-2 bg-indigo-600 border border-transparent rounded-lg text-sm font-medium text-white hover:bg-indigo-700 shadow-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed" style="display: none;">
-                        Siguiente
-                    </button>
-                    
-                    <button type="button" x-show="step === 3" @click="generatePage(); closeAssistant();" :disabled="!pageTitle" class="px-4 py-2 bg-green-600 border border-transparent rounded-lg text-sm font-medium text-white hover:bg-green-700 shadow-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2" style="display: none;">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                        Generar Página
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-
     <div x-data="{ activeTab: 'menu' }" class="w-full">
 
         <!-- Menú de Thumbnails -->
@@ -1349,7 +1224,30 @@ use App\Core\Session;
         });
     });
 
+
+    // ---- TEMPLATE HTML: returns starter HTML for each template type ----
+    function getTemplateHTML(templateId) {
+        const templates = {
+            // CONTACTO
+            contact_1: `<section class="py-16 px-4 max-w-2xl mx-auto"><h1 class="text-3xl font-bold text-gray-900 mb-4">Contáctanos</h1><p class="text-gray-600 mb-8">Completa el formulario y te responderemos a la brevedad.</p><form class="space-y-4"><div><label class="block text-sm font-medium text-gray-700 mb-1">Nombre</label><input type="text" class="w-full border border-gray-300 rounded-lg px-4 py-2" placeholder="Tu nombre"></div><div><label class="block text-sm font-medium text-gray-700 mb-1">Email</label><input type="email" class="w-full border border-gray-300 rounded-lg px-4 py-2" placeholder="tu@email.com"></div><div><label class="block text-sm font-medium text-gray-700 mb-1">Mensaje</label><textarea rows="5" class="w-full border border-gray-300 rounded-lg px-4 py-2" placeholder="Escribe tu mensaje..."></textarea></div><button type="submit" class="bg-indigo-600 text-white px-6 py-2.5 rounded-lg font-medium hover:bg-indigo-700 transition-colors">Enviar Mensaje</button></form></section>`,
+            contact_2: `<section class="py-16 px-4"><div class="max-w-5xl mx-auto grid md:grid-cols-2 gap-12"><div><h1 class="text-3xl font-bold text-gray-900 mb-4">Información de Contacto</h1><div class="space-y-4 text-gray-600"><p>📍 Dirección: Tu dirección aquí</p><p>📞 Teléfono: +1 234 567 890</p><p>✉️ Email: contacto@tuempresa.com</p><p>🕒 Horario: Lun-Vie 9am - 6pm</p></div></div><div><h2 class="text-2xl font-bold text-gray-900 mb-4">Escríbenos</h2><form class="space-y-4"><input type="text" class="w-full border border-gray-300 rounded-lg px-4 py-2" placeholder="Nombre"><input type="email" class="w-full border border-gray-300 rounded-lg px-4 py-2" placeholder="Email"><textarea rows="4" class="w-full border border-gray-300 rounded-lg px-4 py-2" placeholder="Mensaje"></textarea><button class="bg-indigo-600 text-white px-6 py-2.5 rounded-lg font-medium">Enviar</button></form></div></div></section>`,
+            contact_3: `<section class="py-16 px-4 max-w-3xl mx-auto text-center"><h1 class="text-3xl font-bold text-gray-900 mb-4">¿Cómo llegar?</h1><p class="text-gray-600 mb-8">Encuéntranos fácilmente en nuestra ubicación.</p><div class="bg-gray-200 rounded-2xl h-64 flex items-center justify-center mb-8"><p class="text-gray-500">Mapa aquí</p></div><div class="grid md:grid-cols-2 gap-4 text-left"><div class="bg-gray-50 p-4 rounded-xl"><strong>Dirección</strong><p class="text-gray-600 mt-1">Tu dirección completa aquí</p></div><div class="bg-gray-50 p-4 rounded-xl"><strong>Horarios</strong><p class="text-gray-600 mt-1">Lun-Vie: 9am - 6pm<br>Sáb: 10am - 2pm</p></div></div></section>`,
+            // NOSOTROS
+            about_1: `<section class="py-16 px-4 max-w-4xl mx-auto"><h1 class="text-3xl font-bold text-gray-900 mb-4">Nuestra Historia</h1><p class="text-gray-600 text-lg mb-8">Desde nuestros inicios, hemos trabajado con pasión para ofrecer productos y servicios de la más alta calidad.</p><div class="space-y-6 text-gray-600"><p>Párrafo sobre los inicios de la empresa...</p><p>Párrafo sobre el crecimiento y evolución...</p><p>Párrafo sobre la actualidad y futuro...</p></div></section>`,
+            about_2: `<section class="py-16 px-4 max-w-4xl mx-auto"><h1 class="text-3xl font-bold text-gray-900 mb-4">Nuestro Equipo</h1><p class="text-gray-600 mb-10">Conoce a las personas que hacen posible todo lo que ofrecemos.</p><div class="grid md:grid-cols-3 gap-8"><div class="text-center"><div class="w-24 h-24 bg-indigo-100 rounded-full mx-auto mb-4 flex items-center justify-center text-indigo-600 text-2xl font-bold">A</div><h3 class="font-bold text-gray-900">Ana García</h3><p class="text-sm text-gray-500">Directora General</p></div><div class="text-center"><div class="w-24 h-24 bg-indigo-100 rounded-full mx-auto mb-4 flex items-center justify-center text-indigo-600 text-2xl font-bold">C</div><h3 class="font-bold text-gray-900">Carlos López</h3><p class="text-sm text-gray-500">Director de Operaciones</p></div><div class="text-center"><div class="w-24 h-24 bg-indigo-100 rounded-full mx-auto mb-4 flex items-center justify-center text-indigo-600 text-2xl font-bold">M</div><h3 class="font-bold text-gray-900">María Torres</h3><p class="text-sm text-gray-500">Directora Creativa</p></div></div></section>`,
+            about_3: `<section class="py-16 px-4 max-w-4xl mx-auto"><h1 class="text-3xl font-bold text-gray-900 mb-10 text-center">Sobre Nosotros</h1><div class="grid md:grid-cols-2 gap-8"><div class="bg-indigo-50 p-8 rounded-2xl"><h2 class="text-xl font-bold text-indigo-900 mb-3">Misión</h2><p class="text-indigo-800">Proporcionar productos y servicios excepcionales que mejoren la vida de nuestros clientes, con compromiso, innovación y excelencia.</p></div><div class="bg-gray-50 p-8 rounded-2xl"><h2 class="text-xl font-bold text-gray-900 mb-3">Visión</h2><p class="text-gray-700">Ser la empresa referente en nuestra industria, reconocida por la calidad, confianza y el impacto positivo en nuestra comunidad.</p></div><div class="bg-green-50 p-8 rounded-2xl"><h2 class="text-xl font-bold text-green-900 mb-3">Valores</h2><ul class="text-green-800 space-y-1"><li>✓ Integridad</li><li>✓ Innovación</li><li>✓ Compromiso</li><li>✓ Excelencia</li></ul></div><div class="bg-orange-50 p-8 rounded-2xl"><h2 class="text-xl font-bold text-orange-900 mb-3">Experiencia</h2><p class="text-orange-800">Más de 10 años de trayectoria avalan nuestra experiencia y la confianza de cientos de clientes satisfechos.</p></div></div></section>`,
+            // SERVICIOS
+            services_1: `<section class="py-16 px-4 max-w-5xl mx-auto"><h1 class="text-3xl font-bold text-gray-900 mb-4 text-center">Nuestros Servicios</h1><p class="text-gray-600 text-center mb-10">Soluciones diseñadas para satisfacer tus necesidades.</p><div class="grid md:grid-cols-3 gap-6"><div class="bg-white border border-gray-200 p-6 rounded-2xl shadow-sm hover:shadow-md transition-shadow"><div class="w-12 h-12 bg-indigo-100 rounded-xl flex items-center justify-center mb-4">⭐</div><h3 class="font-bold text-gray-900 mb-2">Servicio Premium</h3><p class="text-gray-600 text-sm">Descripción del servicio premium que ofrecemos a nuestros clientes.</p></div><div class="bg-white border border-gray-200 p-6 rounded-2xl shadow-sm hover:shadow-md transition-shadow"><div class="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center mb-4">🚀</div><h3 class="font-bold text-gray-900 mb-2">Servicio Estándar</h3><p class="text-gray-600 text-sm">Descripción del servicio estándar disponible para todos los clientes.</p></div><div class="bg-white border border-gray-200 p-6 rounded-2xl shadow-sm hover:shadow-md transition-shadow"><div class="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center mb-4">💡</div><h3 class="font-bold text-gray-900 mb-2">Servicio Básico</h3><p class="text-gray-600 text-sm">Descripción del servicio básico ideal para comenzar.</p></div></div></section>`,
+            services_2: `<section class="py-16 px-4 max-w-4xl mx-auto"><h1 class="text-3xl font-bold text-gray-900 mb-10">Nuestros Servicios</h1><div class="space-y-6"><div class="flex gap-6 p-6 bg-white border border-gray-200 rounded-2xl"><div class="flex-shrink-0 w-16 h-16 bg-indigo-100 rounded-xl flex items-center justify-center text-2xl">⭐</div><div class="flex-grow"><div class="flex justify-between items-start"><h3 class="font-bold text-gray-900 text-lg">Servicio Premium</h3><span class="text-indigo-600 font-bold">$99/mes</span></div><p class="text-gray-600 mt-1">Descripción completa del servicio premium con todas sus características.</p><ul class="text-sm text-gray-500 mt-3 space-y-1"><li>✓ Característica 1</li><li>✓ Característica 2</li><li>✓ Característica 3</li></ul></div></div><div class="flex gap-6 p-6 bg-white border border-gray-200 rounded-2xl"><div class="flex-shrink-0 w-16 h-16 bg-green-100 rounded-xl flex items-center justify-center text-2xl">🚀</div><div class="flex-grow"><div class="flex justify-between items-start"><h3 class="font-bold text-gray-900 text-lg">Servicio Estándar</h3><span class="text-green-600 font-bold">$49/mes</span></div><p class="text-gray-600 mt-1">Descripción del servicio estándar.</p><ul class="text-sm text-gray-500 mt-3 space-y-1"><li>✓ Característica A</li><li>✓ Característica B</li></ul></div></div></div></section>`,
+            services_3: `<section class="bg-gradient-to-br from-indigo-600 to-purple-700 text-white py-20 px-4 text-center"><h1 class="text-4xl font-bold mb-4">Servicios que Transforman</h1><p class="text-indigo-100 text-lg max-w-2xl mx-auto mb-10">Ofrecemos soluciones integrales diseñadas para llevar tu negocio al siguiente nivel.</p><a href="#servicios" class="bg-white text-indigo-700 px-8 py-3 rounded-full font-bold hover:bg-indigo-50 transition-colors">Ver Servicios</a></section><section class="py-16 px-4 max-w-5xl mx-auto"><div class="grid md:grid-cols-2 gap-8"><div class="flex gap-4"><div class="w-10 h-10 bg-indigo-100 rounded-lg flex items-center justify-center flex-shrink-0">💎</div><div><h3 class="font-bold text-gray-900">Calidad Garantizada</h3><p class="text-gray-600 text-sm mt-1">Todos nuestros servicios cuentan con garantía de satisfacción.</p></div></div><div class="flex gap-4"><div class="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center flex-shrink-0">⚡</div><div><h3 class="font-bold text-gray-900">Entrega Rápida</h3><p class="text-gray-600 text-sm mt-1">Cumplimos con los tiempos acordados sin comprometer la calidad.</p></div></div></div></section>`,
+            // PÁGINA EN BLANCO
+            blank_1: `<section class="py-16 px-4 max-w-4xl mx-auto"><h1 class="text-3xl font-bold text-gray-900 mb-4">Título de la Página</h1><p class="text-gray-600">Comienza a editar esta página desde el editor de contenido.</p></section>`,
+        };
+        return templates[templateId] || templates['blank_1'];
+    }
+
     // ---- CUSTOM PAGES: Add a new page card ----
+
     let customPageIndex = document.querySelectorAll('.custom-page-item').length;
 
     function addCustomPage(data = {}, autoScroll = true) {
