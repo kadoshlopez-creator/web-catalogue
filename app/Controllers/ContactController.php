@@ -8,9 +8,9 @@ use App\Core\Session;
 
 class ContactController extends Controller
 {
-    public function send(Request $request)
+    public function send()
     {
-        $honeypot = $request->post('hp_website');
+        $honeypot = $this->request->post('hp_website');
         
         // Anti-bot Protection (Honeypot)
         if (!empty($honeypot)) {
@@ -28,9 +28,9 @@ class ContactController extends Controller
             return;
         }
 
-        $name = trim($request->post('name') ?? '');
-        $email = trim($request->post('email') ?? '');
-        $message = trim($request->post('message') ?? '');
+        $name = trim($this->request->post('name') ?? '');
+        $email = trim($this->request->post('email') ?? '');
+        $message = trim($this->request->post('message') ?? '');
 
         if (empty($name) || empty($email) || empty($message)) {
             Session::flash('error', 'Por favor complete todos los campos.');
