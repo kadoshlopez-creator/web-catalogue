@@ -576,7 +576,83 @@ use App\Core\Session;
             <!-- Pages will be rendered here by JS -->
         </div>
 
+        <!-- ═══ MENÚ ACTIVO ═══ -->
+        <div class="mt-8 border-t border-gray-200 pt-6"
+             x-data="activeMenuManager()"
+             x-init="init()">
+
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-bold text-gray-900 flex items-center gap-2">
+                    <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h10M4 18h7"/>
+                    </svg>
+                    Menú de Navegación Activo
+                </h3>
+                <span class="text-xs text-gray-500 bg-gray-100 px-3 py-1 rounded-full font-medium"
+                      x-text="items.filter(i => !i.disabled).length + ' enlace(s) visible(s)'"></span>
+            </div>
+            <p class="text-xs text-gray-500 mb-5">
+                Estos son los enlaces del menú principal de tu sitio. Puedes
+                <strong>desactivarlos</strong> temporalmente (se ocultan sin borrarse) o
+                <strong>eliminarlos</strong> definitivamente.
+                Los cambios se sincronizan con el editor de menú al guardar.
+            </p>
+
+            <div class="space-y-2">
+                <template x-if="items.length === 0">
+                    <div class="text-center py-8 text-gray-400 border border-dashed border-gray-200 rounded-xl bg-gray-50">
+                        <svg class="w-8 h-8 mx-auto mb-2 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 6h16M4 12h16M4 18h16"/>
+                        </svg>
+                        <p class="text-sm">No hay ítems en el menú principal.</p>
+                    </div>
+                </template>
+
+                <template x-for="(item, index) in items" :key="index">
+                    <div class="flex items-center gap-3 p-3 rounded-xl border transition-all"
+                         :class="item.disabled ? 'bg-gray-50 border-gray-200 opacity-60' : 'bg-white border-gray-200 shadow-sm hover:border-blue-200 hover:shadow-md'">
+                        <div class="flex-shrink-0">
+                            <span class="w-2.5 h-2.5 rounded-full block"
+                                  :class="item.disabled ? 'bg-gray-300' : 'bg-green-400'"></span>
+                        </div>
+                        <div class="flex-grow min-w-0">
+                            <p class="text-sm font-semibold text-gray-800 truncate" x-text="item.label"></p>
+                            <p class="text-xs text-gray-400 truncate" x-text="item.link"></p>
+                        </div>
+                        <span class="flex-shrink-0 text-xs px-2 py-0.5 rounded-full font-medium"
+                              :class="item.disabled ? 'bg-gray-100 text-gray-500' : 'bg-green-50 text-green-700'"
+                              x-text="item.disabled ? 'Desactivado' : 'Activo'"></span>
+                        <button type="button"
+                                @click="toggleItem(index)"
+                                class="flex-shrink-0 text-xs px-3 py-1.5 rounded-lg font-medium border transition-all"
+                                :class="item.disabled ? 'border-green-300 text-green-700 hover:bg-green-50' : 'border-orange-300 text-orange-600 hover:bg-orange-50'"
+                                :title="item.disabled ? 'Activar en el menú' : 'Desactivar del menú'"
+                                x-text="item.disabled ? '✓ Activar' : '⊘ Desactivar'">
+                        </button>
+                        <button type="button"
+                                @click="removeItem(index)"
+                                class="flex-shrink-0 p-1.5 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
+                                title="Eliminar permanentemente del menú">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                      d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                            </svg>
+                        </button>
+                    </div>
+                </template>
+            </div>
+
+            <p class="text-xs text-amber-600 mt-4 flex items-center gap-1.5">
+                <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                Los cambios se aplican al presionar <strong class="ml-1">Guardar Configuración</strong>.
+            </p>
+        </div>
+
         <!-- Page Editor Modal -->
+
         <div x-data="pageEditor()" @open-page-editor.window="openEditor($event.detail)" x-show="open" class="fixed inset-0 z-[100] flex items-center justify-center bg-gray-900/50 backdrop-blur-sm" style="display: none;">
             <div @click.away="closeEditor()" class="bg-white rounded-2xl shadow-xl w-full max-w-5xl max-h-[90vh] overflow-hidden flex flex-col mx-4">
                 <!-- Modal Header -->
@@ -870,7 +946,7 @@ use App\Core\Session;
 
             <!-- Menú Principal -->
             <input type="hidden" id="menu-data-main" value="<?= htmlspecialchars(json_encode(array_values($navigationMenus['main']['items'] ?? []))) ?>">
-            <div class="border-t border-gray-200 pt-6" x-data="menuEditor('main', <?= htmlspecialchars(json_encode(array_values($navigationMenus['main']['items'] ?? []))) ?>)" @add-to-menu.window="handleAddToMenu($event)">
+            <div class="border-t border-gray-200 pt-6" x-data="menuEditor('main', <?= htmlspecialchars(json_encode(array_values($navigationMenus['main']['items'] ?? []))) ?>)" @add-to-menu.window="handleAddToMenu($event)" @active-menu-sync.window="items = $event.detail.items">
                 <h4 class="text-sm font-semibold text-gray-900 mb-4 flex items-center gap-2">
                     <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
                     Menú Principal
@@ -1462,6 +1538,66 @@ use App\Core\Session;
                 }
             }
         }
+    }
+
+    // ── activeMenuManager: gestión visual del menú principal desde "Páginas y SEO" ──
+    function activeMenuManager() {
+        return {
+            items: [],
+
+            init() {
+                // Leer ítems iniciales desde el input oculto que ya alimenta el menuEditor
+                this.loadItems();
+
+                // Escuchar cuando el menuEditor agrega ítems (desde asistente de páginas)
+                window.addEventListener('add-to-menu', () => {
+                    this.$nextTick(() => this.loadItems());
+                });
+            },
+
+            loadItems() {
+                const raw = document.getElementById('menu-data-main');
+                if (!raw || !raw.value) return;
+                try {
+                    const parsed = JSON.parse(raw.value);
+                    // Preservar flag 'disabled' si ya existe, de lo contrario añadirlo en false
+                    this.items = parsed.map(item => ({
+                        ...item,
+                        disabled: item.disabled ?? false
+                    }));
+                } catch(e) {
+                    this.items = [];
+                }
+            },
+
+            toggleItem(index) {
+                this.items[index].disabled = !this.items[index].disabled;
+                this.syncToMenuEditor();
+            },
+
+            removeItem(index) {
+                this.items.splice(index, 1);
+                this.syncToMenuEditor();
+            },
+
+            // Sincroniza el estado de este componente hacia el menuEditor
+            // filtrando los ítems desactivados para que no se guarden en el menú
+            syncToMenuEditor() {
+                // Actualizar el input oculto con sólo los ítems activos
+                const activeItems = this.items
+                    .filter(i => !i.disabled)
+                    .map(({ label, link }) => ({ label, link }));
+
+                const raw = document.getElementById('menu-data-main');
+                if (raw) raw.value = JSON.stringify(activeItems);
+
+                // Forzar a Alpine a re-leer el valor del menuEditor principal
+                // disparando un evento custom que el menuEditor de "Pie de Página" también usa
+                window.dispatchEvent(new CustomEvent('active-menu-sync', {
+                    detail: { items: activeItems }
+                }));
+            }
+        };
     }
 
 </script>
