@@ -171,6 +171,39 @@
         </script>
     </div>
     <?php endif; ?>
+    
+    <script>
+        // Reparación automática para formularios de contacto generados visualmente (TinyMCE suele borrar los atributos name)
+        document.addEventListener('submit', function(e) {
+            if (e.target && e.target.getAttribute('action') === '/contacto/enviar') {
+                const form = e.target;
+                
+                // Buscar inputs y asignar nombres correctos si faltan
+                const texts = form.querySelectorAll('input[type="text"]');
+                texts.forEach(t => {
+                    if (t.style.display === 'none' || t.classList.contains('hidden')) {
+                        t.setAttribute('name', 'hp_website'); // honeypot
+                    } else {
+                        t.setAttribute('name', 'name');
+                    }
+                });
+                
+                const emails = form.querySelectorAll('input[type="email"]');
+                emails.forEach(e => e.setAttribute('name', 'email'));
+                
+                const textareas = form.querySelectorAll('textarea');
+                textareas.forEach(t => t.setAttribute('name', 'message'));
+                
+                // Asegurar que el CSRF token tenga el nombre correcto
+                const hiddens = form.querySelectorAll('input[type="hidden"]');
+                hiddens.forEach(h => {
+                    if (h.value && h.value.length > 20) { // Si parece un token
+                        h.setAttribute('name', '_csrf_token');
+                    }
+                });
+            }
+        });
+    </script>
 
     <!-- Main Content -->
     <main id="main-content" class="flex-grow <?php echo $hasFreeShipping ? 'pt-28' : 'pt-20'; ?>">

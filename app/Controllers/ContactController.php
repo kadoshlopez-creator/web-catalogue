@@ -28,12 +28,18 @@ class ContactController extends Controller
             return;
         }
 
-        $name = trim($this->request->post('name') ?? '');
-        $email = trim($this->request->post('email') ?? '');
-        $message = trim($this->request->post('message') ?? '');
+        if (empty($_POST)) {
+            Session::flash('error', 'Error técnico: El formulario no envió datos. Asegúrate de que los campos tengan los atributos name="name", name="email" y name="message" en el código fuente.');
+            $this->redirect($_SERVER['HTTP_REFERER'] ?? '/');
+            return;
+        }
+
+        $name = trim($this->request->post('name') ?? $this->request->post('nombre') ?? '');
+        $email = trim($this->request->post('email') ?? $this->request->post('correo') ?? '');
+        $message = trim($this->request->post('message') ?? $this->request->post('mensaje') ?? '');
 
         if (empty($name) || empty($email) || empty($message)) {
-            Session::flash('error', 'Por favor complete todos los campos.');
+            Session::flash('error', 'Por favor complete todos los campos. (Recibido: Nombre='.(!empty($name)?'Sí':'No').', Email='.(!empty($email)?'Sí':'No').', Mensaje='.(!empty($message)?'Sí':'No').')');
             $this->redirect($_SERVER['HTTP_REFERER'] ?? '/');
             return;
         }
