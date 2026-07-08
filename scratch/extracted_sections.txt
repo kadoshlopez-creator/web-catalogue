@@ -1,5 +1,0 @@
-Logo: 0
-SEO: 0
-Ribbon: 0
-Hero: 0
-Products: 0

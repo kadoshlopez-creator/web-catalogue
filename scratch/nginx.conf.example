@@ -1,4 +1,0 @@
-# Si usas Plesk y te da el error "duplicate location /", usa esto en su lugar:
-if (!-e $request_filename) {
-    rewrite ^/(.*)$ /index.php?$query_string last;
-}
